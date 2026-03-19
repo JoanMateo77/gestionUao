@@ -1,0 +1,170 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum Rol {
+  DOCENTE
+  SECRETARIA
+}
+
+enum TipoUsuario {
+  SECRETARIA
+}
+
+enum EstadoReserva {
+  CONFIRMADA
+  CANCELADA
+}
+
+// ─────────────────────────────────────────────
+// TABLAS
+// ─────────────────────────────────────────────
+
+model Facultad {
+  id        Int      @id @default(autoincrement())
+  nombre    String   @unique @db.VarChar(100)
+  activa    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relaciones
+  usuarios Usuario[]
+  salas    Sala[]
+
+  @@map("facultad")
+}
+
+model Usuario {
+  id                  Int      @id @default(autoincrement())
+  nombre              String   @db.VarChar(100)
+  correoInstitucional String   @unique @map("correo_institucional") @db.VarChar(100)
+  passwordHash        String   @map("password_hash") @db.VarChar(255)
+  rol                 Rol      @default(DOCENTE)
+  activo              Boolean  @default(true)
+  fechaRegistro       DateTime @default(now()) @map("fecha_registro")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // FK
+  facultadId Int      @map("facultad_id")
+  facultad   Facultad @relation(fields: [facultadId], references: [id])
+
+  // Relaciones inversas
+  reservasCreadas    Reserva[]      @relation("ReservaCreador")
+  reservasCanceladas Reserva[]      @relation("ReservaCancelador")
+  logsAuditoria      LogAuditoria[]
+
+  @@index([facultadId])
+  @@index([rol])
+  @@map("usuario")
+}
+
+model ListaBlanca {
+  correoInstitucional String      @id @map("correo_institucional") @db.VarChar(100)
+  nombre              String      @db.VarChar(100)
+  tipoUsuario         TipoUsuario @default(SECRETARIA) @map("tipo_usuario")
+  createdAt           DateTime    @default(now()) @map("created_at")
+
+  @@map("lista_blanca")
+}
+
+model Sala {
+  id         Int      @id @default(autoincrement())
+  nombre     String   @db.VarChar(100)
+  ubicacion  String?  @db.VarChar(200)
+  capacidad  Int
+  habilitada Boolean  @default(true)
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // FK
+  facultadId Int      @map("facultad_id")
+  facultad   Facultad @relation(fields: [facultadId], references: [id])
+
+  // Relaciones inversas
+  reservas     Reserva[]
+  salaRecursos SalaRecurso[]
+
+  @@index([facultadId])
+  @@index([habilitada])
+  @@map("sala")
+}
+
+model RecursoTecnologico {
+  id          Int     @id @default(autoincrement())
+  nombre      String  @unique @db.VarChar(100)
+  descripcion String? @db.VarChar(255)
+
+  // Relaciones inversas
+  salaRecursos SalaRecurso[]
+
+  @@map("recurso_tecnologico")
+}
+
+model SalaRecurso {
+  id Int @id @default(autoincrement())
+
+  // FKs
+  salaId    Int                @map("sala_id")
+  recursoId Int                @map("recurso_id")
+  sala      Sala               @relation(fields: [salaId], references: [id], onDelete: Cascade)
+  recurso   RecursoTecnologico @relation(fields: [recursoId], references: [id], onDelete: Cascade)
+
+  @@unique([salaId, recursoId])
+  @@map("sala_recurso")
+}
+
+model Reserva {
+  id               Int           @id @default(autoincrement())
+  motivo           String?       @db.VarChar(255)
+  fecha            DateTime      @db.Date
+  horaInicio       DateTime      @map("hora_inicio") @db.Time()
+  horaFin          DateTime      @map("hora_fin") @db.Time()
+  estado           EstadoReserva @default(CONFIRMADA)
+  fechaCreacion    DateTime      @default(now()) @map("fecha_creacion")
+  fechaCancelacion DateTime?     @map("fecha_cancelacion")
+
+  // FKs
+  salaId       Int  @map("sala_id")
+  usuarioId    Int  @map("usuario_id")
+  canceladoPor Int? @map("cancelado_por")
+
+  sala       Sala     @relation(fields: [salaId], references: [id])
+  usuario    Usuario  @relation("ReservaCreador", fields: [usuarioId], references: [id])
+  cancelador Usuario? @relation("ReservaCancelador", fields: [canceladoPor], references: [id])
+
+  @@index([salaId, fecha, estado])
+  @@index([usuarioId])
+  @@index([fecha])
+  @@map("reserva")
+}
+
+model LogAuditoria {
+  id              Int      @id @default(autoincrement())
+  accion          String   @db.VarChar(50)
+  entidad         String   @db.VarChar(50)
+  entidadId       Int      @map("entidad_id")
+  datosAnteriores Json?    @map("datos_anteriores")
+  datosNuevos     Json?    @map("datos_nuevos")
+  fecha           DateTime @default(now())
+  ipAddress       String?  @map("ip_address") @db.VarChar(45)
+
+  // FK
+  usuarioId Int     @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id])
+
+  @@index([entidad, entidadId])
+  @@index([usuarioId])
+  @@index([fecha])
+  @@map("log_auditoria")
+}

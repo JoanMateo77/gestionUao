@@ -1,64 +1,32 @@
-# AGENTS.md — Reglas para Agentes IA
+# AGENTS.md — Reglas Generales para Agentes IA
 
-> Reglas y convenciones que deben seguir todos los agentes IA que trabajen en este repositorio.
+> Reglas y convenciones estándar para agentes IA al interactuar con proyectos de desarrollo de software.
 
-## Proyecto
+## Principios Generales
 
-**Sistema Web de Reservas de Salas de Reuniones por Facultad**  
-Asignatura: Ingeniería de Software 1 | Universidad
+Antes de iniciar cualquier tarea de desarrollo o exploración exhaustiva, el agente debe:
+1. **Comprender el contexto**: Leer los documentos principales del proyecto (como `docs/project-spec.md`, `docs/architecture.md`, etc.).
+2. **Minimizar costos / optimizar tokens**: Evitar usar herramientas de listar directorios enteros si la estructura ya está documentada. 
+3. **Respetar la arquitectura**: Adaptarse a los patrones de diseño y decisiones arquitectónicas estipuladas por el usuario.
 
-## Documentación de Referencia
+## Reglas Obligatorias de Codificación
 
-Antes de cualquier exploración del filesystem, lee:
-1. `docs/project-spec.md` → Contexto, roles, reglas, hitos
-2. `docs/requirements.md` → RF, RNF, restricciones
-3. `docs/architecture.md` → Arquitectura, patrones, endpoints
-4. `docs/database-model.md` → Modelo ER, entidades
+- **Idiomas y convenciones**:
+  - Código y variables en el idioma y estándar definido en el proyecto (ej. `camelCase` para variables, `PascalCase` para clases).
+  - Tablas de BD normalmente en `snake_case`.
+  - Documentación externa en el idioma preferido del usuario.
+- **Validaciones**: Siempre validar entradas a nivel de rutas o en una capa de servicios centralizada antes de operar con la base de datos.
+- **Trazabilidad y Seguridad**: Todo sistema crítico debe considerar el registro de logs o auditoría, y validaciones precisas de roles antes de ejecutar acciones de escritura.
+- **RESTful**: Usar verbos HTTP adecuados e idempotencia cuando corresponda (GET, POST, PUT, PATCH, DELETE).
 
-## Reglas Obligatorias
+## Formatos de Documentación
 
-### Dominio del Negocio
-- Solo existen 2 roles: **DOCENTE** y **SECRETARIA** (sin admin)
-- Las reservas **nunca se eliminan**, solo se cancelan
-- Horario permitido: **7:00 AM – 9:30 PM**
-- Una sala no puede tener **reservas superpuestas**
-- **Todas las acciones** generan registro de auditoría
-- Las salas son **exclusivas para reuniones** (no clases)
+- **Historias de usuario**: `Como [rol], quiero [acción], para [beneficio]`
+- **Diagramas**: Usar preferentemente **Mermaid**.
+- **Criterios de aceptación**: Formato **Given/When/Then**.
 
-### Formato de Documentación
-- Idioma: **Español**
-- Historias de usuario: Formato `Como [rol], quiero [acción], para [beneficio]`
-- IDs de HU: `HU-XX` con trazabilidad a `RF-XX`
-- Diagramas: Usar **Mermaid** cuando sea posible
-- Criterios de aceptación: Formato **Given/When/Then** adaptado al español
+## Optimización de Tokens
 
-### Convenciones de Código (cuando se implemente)
-- Arquitectura en capas: `routes → controllers → services → repositories`
-- Nombres de variables y funciones en **camelCase** (código)
-- Nombres de tablas en **snake_case** (BD)
-- Endpoints REST: sustantivos en plural, verbos HTTP estándar
-- Validaciones de negocio en la capa de **servicios**, no en controladores
-- Middleware para: autenticación, autorización (RBAC), auditoría
-
-### Optimización de Tokens
-- Usar IDs de requisitos (`RF-01`, `R-05`) en vez de texto completo
-- Referenciar docs/ en vez de repetir información
-- Respuestas concisas con tablas y listas
-- No repetir contexto ya conocido
-
-## Skills y Workflows
-
-- Skills disponibles en `.agents/skills/` (leer `SKILL.md` de cada uno)
-- Workflows disponibles en `.agents/workflows/` (usar con `/comando`)
-- Siempre usar Context7 MCP cuando se necesite documentación de librerías
-
-## Fase Actual del Proyecto
-
-**Semana 6 (02-05/03/2026):** Documentación
-- ✅ Especificación del proyecto
-- ✅ Requisitos documentados
-- ✅ Modelo lógico de BD
-- 🔄 Historias de usuario
-- 🔄 Diagramas de casos de uso
-- 🔄 Prototipos de interfaces
-- 🔄 Planeación del desarrollo
+- Referenciar identificadores de requisitos en lugar de repetir descripciones largas.
+- Dar respuestas directas, con listas y tablas para facilitar la lectura.
+- No repetir reglas o contexto que ya fue provisto por el usuario.

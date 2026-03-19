@@ -1,0 +1,805 @@
+{
+	"info": {
+		"name": "Reservas Salas UAO - API Completa",
+		"description": "Colección completa para probar todos los endpoints del sistema de reservas de salas de reuniones por facultad.\n\n## Flujo de Prueba Recomendado\n1. Obtener CSRF Token\n2. Registrar usuario (Docente y/o Secretaria)\n3. Login para obtener session token\n4. Listar Facultades\n5. CRUD de Salas (Secretaria)\n6. Gestión de Recursos (Secretaria)\n7. Crear/Listar/Cancelar Reservas\n\n## Variables\n- `baseUrl`: URL base del servidor (default: http://localhost:3000)\n- `csrfToken`: Token CSRF de NextAuth (se obtiene automáticamente)\n- `sessionToken`: Cookie de sesión (se obtiene automáticamente tras login)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{ "key": "baseUrl", "value": "http://localhost:3000", "type": "string" },
+		{ "key": "csrfToken", "value": "", "type": "string" },
+		{ "key": "sessionToken", "value": "", "type": "string" },
+		{ "key": "roomId", "value": "1", "type": "string" },
+		{ "key": "recursoId", "value": "1", "type": "string" },
+		{ "key": "salaRecursoId", "value": "1", "type": "string" },
+		{ "key": "reservationId", "value": "1", "type": "string" },
+		{ "key": "facultadId", "value": "1", "type": "string" }
+	],
+	"item": [
+		{
+			"name": "🔐 Auth",
+			"description": "Autenticación: registro, login (NextAuth Credentials) y obtención de sesión.",
+			"item": [
+				{
+					"name": "1. Obtener CSRF Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"const data = pm.response.json();",
+									"if (data.csrfToken) {",
+									"    pm.collectionVariables.set('csrfToken', data.csrfToken);",
+									"    pm.test('CSRF Token obtenido', () => pm.expect(data.csrfToken).to.be.a('string'));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/api/auth/csrf", "host": ["{{baseUrl}}"], "path": ["api", "auth", "csrf"] },
+						"description": "Obtiene el token CSRF necesario para las llamadas de NextAuth (login/register). Se guarda automáticamente en la variable `csrfToken`."
+					}
+				},
+				{
+					"name": "2. Registrar Usuario (Docente)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201 - Usuario creado', () => pm.response.to.have.status(201));",
+									"const data = pm.response.json();",
+									"pm.test('Tiene id y rol', () => {",
+									"    pm.expect(data).to.have.property('id');",
+									"    pm.expect(data).to.have.property('rol');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Juan Docente\",\n  \"correo\": \"juan.docente@uao.edu.co\",\n  \"password\": \"password123\",\n  \"facultadId\": {{facultadId}}\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+						"description": "Registra un nuevo usuario. El rol se asigna automáticamente: SECRETARIA si el correo está en lista_blanca, DOCENTE en caso contrario.\n\nCampos requeridos:\n- nombre (2-100 chars)\n- correo (debe ser @uao.edu.co)\n- password (6-50 chars)\n- facultadId (int, facultad existente)"
+					}
+				},
+				{
+					"name": "2b. Registrar Usuario (Secretaria)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201 - Secretaria creada', () => pm.response.to.have.status(201));",
+									"const data = pm.response.json();",
+									"pm.test('Rol es SECRETARIA', () => pm.expect(data.rol).to.eql('SECRETARIA'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Maria Secretaria\",\n  \"correo\": \"maria.secretaria@uao.edu.co\",\n  \"password\": \"password123\",\n  \"facultadId\": {{facultadId}}\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+						"description": "Registra una secretaria. IMPORTANTE: El correo debe existir previamente en la tabla `lista_blanca` para que se asigne el rol SECRETARIA."
+					}
+				},
+				{
+					"name": "3. Login (NextAuth Credentials)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 - Login exitoso', () => pm.response.to.have.status(200));",
+									"// Extraer session token de cookies",
+									"const cookies = pm.response.headers.filter(h => h.key === 'set-cookie');",
+									"cookies.forEach(cookie => {",
+									"    const val = cookie.value;",
+									"    if (val.includes('next-auth.session-token')) {",
+									"        const token = val.split('next-auth.session-token=')[1].split(';')[0];",
+									"        pm.collectionVariables.set('sessionToken', token);",
+									"        pm.test('Session token guardado', () => pm.expect(token).to.be.a('string'));",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/x-www-form-urlencoded" }],
+						"body": {
+							"mode": "urlencoded",
+							"urlencoded": [
+								{ "key": "csrfToken", "value": "{{csrfToken}}" },
+								{ "key": "correo", "value": "maria.secretaria@uao.edu.co" },
+								{ "key": "password", "value": "password123" },
+								{ "key": "json", "value": "true" }
+							]
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/callback/credentials", "host": ["{{baseUrl}}"], "path": ["api", "auth", "callback", "credentials"] },
+						"description": "Login via NextAuth Credentials provider. Envía datos como form-urlencoded.\n\n⚠️ IMPORTANTE: Primero ejecutar 'Obtener CSRF Token' para que csrfToken esté disponible.\n\nEl session token se guarda automáticamente de las cookies de respuesta."
+					}
+				},
+				{
+					"name": "4. Obtener Sesión Actual",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"const data = pm.response.json();",
+									"pm.test('Sesión tiene usuario', () => pm.expect(data).to.have.property('user'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": { "raw": "{{baseUrl}}/api/auth/session", "host": ["{{baseUrl}}"], "path": ["api", "auth", "session"] },
+						"description": "Verifica la sesión actual del usuario autenticado. Devuelve datos del usuario (id, nombre, correo, rol, facultadId)."
+					}
+				}
+			]
+		},
+		{
+			"name": "🏢 Facultades",
+			"description": "Listado de facultades (endpoint público).",
+			"item": [
+				{
+					"name": "Listar Facultades",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Es un array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+									"const data = pm.response.json();",
+									"if (data.length > 0) {",
+									"    pm.collectionVariables.set('facultadId', data[0].id);",
+									"    pm.test('Facultad tiene id y nombre', () => {",
+									"        pm.expect(data[0]).to.have.property('id');",
+									"        pm.expect(data[0]).to.have.property('nombre');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/api/faculties", "host": ["{{baseUrl}}"], "path": ["api", "faculties"] },
+						"description": "Lista todas las facultades activas ordenadas por nombre. No requiere autenticación. Guarda automáticamente el ID de la primera facultad."
+					}
+				}
+			]
+		},
+		{
+			"name": "🏠 Salas",
+			"description": "CRUD completo de salas de reunión. Crear/Editar/Cambiar estado requiere rol SECRETARIA.",
+			"item": [
+				{
+					"name": "Listar Salas (por facultad)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Es un array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+									"const data = pm.response.json();",
+									"if (data.length > 0) {",
+									"    pm.collectionVariables.set('roomId', data[0].id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": { "raw": "{{baseUrl}}/api/rooms", "host": ["{{baseUrl}}"], "path": ["api", "rooms"] },
+						"description": "Lista todas las salas de la facultad del usuario autenticado. Requiere auth."
+					}
+				},
+				{
+					"name": "Crear Sala (Secretaria)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201 - Sala creada', () => pm.response.to.have.status(201));",
+									"const data = pm.response.json();",
+									"if (data.id) pm.collectionVariables.set('roomId', data.id);",
+									"pm.test('Sala tiene nombre y capacidad', () => {",
+									"    pm.expect(data).to.have.property('nombre');",
+									"    pm.expect(data).to.have.property('capacidad');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Sala de Reuniones A\",\n  \"ubicacion\": \"Edificio 1, Piso 3\",\n  \"capacidad\": 10\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/rooms", "host": ["{{baseUrl}}"], "path": ["api", "rooms"] },
+						"description": "Crea una nueva sala. Solo SECRETARIA.\n\nCampos:\n- nombre (requerido, 2-100 chars)\n- ubicacion (opcional, max 200 chars)\n- capacidad (requerido, 2-100)"
+					}
+				},
+				{
+					"name": "Obtener Sala por ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Sala tiene id', () => pm.expect(pm.response.json()).to.have.property('id'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": { "raw": "{{baseUrl}}/api/rooms/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["api", "rooms", "{{roomId}}"] },
+						"description": "Obtiene una sala específica por su ID."
+					}
+				},
+				{
+					"name": "Editar Sala (Secretaria)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 - Sala actualizada', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Sala de Reuniones A - Actualizada\",\n  \"ubicacion\": \"Edificio 1, Piso 3, Ala Norte\",\n  \"capacidad\": 15\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/rooms/{{roomId}}", "host": ["{{baseUrl}}"], "path": ["api", "rooms", "{{roomId}}"] },
+						"description": "Edita una sala existente. Solo SECRETARIA. Todos los campos son opcionales."
+					}
+				},
+				{
+					"name": "Deshabilitar Sala (Secretaria)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Sala deshabilitada', () => pm.expect(pm.response.json().habilitada).to.eql(false));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"habilitada\": false\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/rooms/{{roomId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "rooms", "{{roomId}}", "status"] },
+						"description": "Deshabilita una sala. Solo SECRETARIA."
+					}
+				},
+				{
+					"name": "Habilitar Sala (Secretaria)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Sala habilitada', () => pm.expect(pm.response.json().habilitada).to.eql(true));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"habilitada\": true\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/rooms/{{roomId}}/status", "host": ["{{baseUrl}}"], "path": ["api", "rooms", "{{roomId}}", "status"] },
+						"description": "Habilita una sala previamente deshabilitada. Solo SECRETARIA."
+					}
+				}
+			]
+		},
+		{
+			"name": "🖥️ Recursos Tecnológicos",
+			"description": "Gestión de recursos tecnológicos y su asignación a salas.",
+			"item": [
+				{
+					"name": "Listar Todos los Recursos",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Es un array', () => pm.expect(pm.response.json()).to.be.an('array'));",
+									"const data = pm.response.json();",
+									"if (data.length > 0) pm.collectionVariables.set('recursoId', data[0].id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": { "raw": "{{baseUrl}}/api/resources", "host": ["{{baseUrl}}"], "path": ["api", "resources"] },
+						"description": "Lista todos los recursos tecnológicos disponibles (proyector, pizarra, etc.)."
+					}
+				},
+				{
+					"name": "Listar Recursos de una Sala",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));",
+									"pm.test('Es un array', () => pm.expect(pm.response.json()).to.be.an('array'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": { "raw": "{{baseUrl}}/api/rooms/{{roomId}}/resources", "host": ["{{baseUrl}}"], "path": ["api", "rooms", "{{roomId}}", "resources"] },
+						"description": "Lista los recursos asignados a una sala específica."
+					}
+				},
+				{
+					"name": "Agregar Recurso a Sala (Secretaria)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201 - Recurso asignado', () => pm.response.to.have.status(201));",
+									"const data = pm.response.json();",
+									"if (data.id) pm.collectionVariables.set('salaRecursoId', data.id);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"recursoId\": {{recursoId}}\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/rooms/{{roomId}}/resources", "host": ["{{baseUrl}}"], "path": ["api", "rooms", "{{roomId}}", "resources"] },
+						"description": "Asigna un recurso tecnológico a una sala. Solo SECRETARIA.\n\nCampo requerido:\n- recursoId (int, ID del recurso tecnológico)"
+					}
+				},
+				{
+					"name": "Retirar Recurso de Sala (Secretaria)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 - Recurso retirado', () => pm.response.to.have.status(200));",
+									"pm.test('Mensaje correcto', () => pm.expect(pm.response.json().message).to.include('retirado'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": { "raw": "{{baseUrl}}/api/rooms/{{roomId}}/resources/{{salaRecursoId}}", "host": ["{{baseUrl}}"], "path": ["api", "rooms", "{{roomId}}", "resources", "{{salaRecursoId}}"] },
+						"description": "Retira un recurso de una sala. Solo SECRETARIA. El `rid` es el ID de la relación sala_recurso."
+					}
+				}
+			]
+		},
+		{
+			"name": "📅 Reservas",
+			"description": "Crear, listar y cancelar reservas. Horario permitido: 7:00 AM - 9:30 PM. No se permiten solapamientos.",
+			"item": [
+				{
+					"name": "Crear Reserva",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201 - Reserva creada', () => pm.response.to.have.status(201));",
+									"const data = pm.response.json();",
+									"if (data.id) pm.collectionVariables.set('reservationId', data.id);",
+									"pm.test('Estado es CONFIRMADA', () => pm.expect(data.estado).to.eql('CONFIRMADA'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"salaId\": {{roomId}},\n  \"fecha\": \"2026-03-25\",\n  \"horaInicio\": \"09:00\",\n  \"horaFin\": \"10:30\",\n  \"motivo\": \"Reunión de coordinación académica\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] },
+						"description": "Crea una nueva reserva. Cualquier usuario autenticado.\n\nCampos:\n- salaId (requerido, int)\n- fecha (requerido, formato YYYY-MM-DD)\n- horaInicio (requerido, formato HH:MM, >= 07:00)\n- horaFin (requerido, formato HH:MM, <= 21:30)\n- motivo (opcional, max 255 chars)\n\nReglas:\n- horaInicio < horaFin\n- Sin solapamiento con otras reservas\n- Sala debe estar habilitada"
+					}
+				},
+				{
+					"name": "Crear Reserva (Tarde)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 201', () => pm.response.to.have.status(201));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"salaId\": {{roomId}},\n  \"fecha\": \"2026-03-25\",\n  \"horaInicio\": \"14:00\",\n  \"horaFin\": \"15:30\",\n  \"motivo\": \"Reunión de proyecto de investigación\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] },
+						"description": "Crea una segunda reserva en horario de la tarde (sin solapamiento con la primera)."
+					}
+				},
+				{
+					"name": "❌ Reserva Solapada (debe fallar 409)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 409 - Conflicto solapamiento', () => pm.response.to.have.status(409));",
+									"pm.test('Error de solapamiento', () => pm.expect(pm.response.json().error).to.include('solapamiento').or.include('R-03'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"salaId\": {{roomId}},\n  \"fecha\": \"2026-03-25\",\n  \"horaInicio\": \"09:30\",\n  \"horaFin\": \"10:00\",\n  \"motivo\": \"Intento de solapamiento\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] },
+						"description": "Prueba negativa: intenta crear una reserva que se solapa con la primera (09:00-10:30). Debe retornar 409."
+					}
+				},
+				{
+					"name": "❌ Reserva Fuera de Horario (debe fallar 400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400 - Fuera de horario', () => pm.response.to.have.status(400));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"salaId\": {{roomId}},\n  \"fecha\": \"2026-03-26\",\n  \"horaInicio\": \"06:00\",\n  \"horaFin\": \"07:30\",\n  \"motivo\": \"Antes de las 7 AM\"\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/reservations", "host": ["{{baseUrl}}"], "path": ["api", "reservations"] },
+						"description": "Prueba negativa: hora de inicio antes de las 7:00 AM. Debe retornar 400."
+					}
+				},
+				{
+					"name": "Listar Reservas",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reservations?page=1&limit=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reservations"],
+							"query": [
+								{ "key": "page", "value": "1", "description": "Página (default: 1)" },
+								{ "key": "limit", "value": "20", "description": "Registros por página (default: 20)" }
+							]
+						},
+						"description": "Lista reservas según el rol:\n- DOCENTE: solo sus reservas\n- SECRETARIA: todas las de su facultad\n\nQuery params opcionales: page, limit, estado (CONFIRMADA/CANCELADA)"
+					}
+				},
+				{
+					"name": "Listar Reservas (solo CONFIRMADAS)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200', () => pm.response.to.have.status(200));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reservations?estado=CONFIRMADA&page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reservations"],
+							"query": [
+								{ "key": "estado", "value": "CONFIRMADA" },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "10" }
+							]
+						},
+						"description": "Lista solo las reservas con estado CONFIRMADA."
+					}
+				},
+				{
+					"name": "Listar Reservas (solo CANCELADAS)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/reservations?estado=CANCELADA&page=1&limit=10",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "reservations"],
+							"query": [
+								{ "key": "estado", "value": "CANCELADA" },
+								{ "key": "page", "value": "1" },
+								{ "key": "limit", "value": "10" }
+							]
+						},
+						"description": "Lista solo las reservas canceladas."
+					}
+				},
+				{
+					"name": "Cancelar Reserva",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 200 - Reserva cancelada', () => pm.response.to.have.status(200));",
+									"pm.test('Estado es CANCELADA', () => pm.expect(pm.response.json().estado).to.eql('CANCELADA'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{ "key": "Cookie", "value": "next-auth.session-token={{sessionToken}}" }
+						],
+						"url": { "raw": "{{baseUrl}}/api/reservations/{{reservationId}}/cancel", "host": ["{{baseUrl}}"], "path": ["api", "reservations", "{{reservationId}}", "cancel"] },
+						"description": "Cancela una reserva. Permitido para:\n- El propietario de la reserva\n- Cualquier SECRETARIA de la misma facultad\n\nLas reservas NUNCA se eliminan, solo cambian a estado CANCELADA."
+					}
+				}
+			]
+		},
+		{
+			"name": "🚫 Pruebas de Seguridad",
+			"description": "Pruebas negativas para verificar autenticación y autorización RBAC.",
+			"item": [
+				{
+					"name": "❌ Acceso sin autenticación (401)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 401 - No autenticado', () => pm.response.to.have.status(401));",
+									"pm.test('Error correcto', () => pm.expect(pm.response.json().error).to.include('autenticado'));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": { "raw": "{{baseUrl}}/api/rooms", "host": ["{{baseUrl}}"], "path": ["api", "rooms"] },
+						"description": "Intenta acceder a un endpoint protegido sin token de sesión. Debe retornar 401."
+					}
+				},
+				{
+					"name": "❌ Crear sala sin ser Secretaria (403)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 401 o 403', () => {",
+									"    pm.expect(pm.response.code).to.be.oneOf([401, 403]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Content-Type", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Sala Intrusa\",\n  \"capacidad\": 5\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/rooms", "host": ["{{baseUrl}}"], "path": ["api", "rooms"] },
+						"description": "Intenta crear una sala sin autenticación o con usuario DOCENTE. Debe retornar 401 o 403.\n\n⚠️ Para probar 403 específicamente, primero hacer login como DOCENTE."
+					}
+				},
+				{
+					"name": "❌ Registro con correo no institucional (400)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 400 - Correo no institucional', () => pm.response.to.have.status(400));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Usuario Externo\",\n  \"correo\": \"externo@gmail.com\",\n  \"password\": \"password123\",\n  \"facultadId\": 1\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+						"description": "Prueba negativa: registro con correo no @uao.edu.co. Debe retornar 400."
+					}
+				},
+				{
+					"name": "❌ Registro con correo duplicado (409)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test('Status 409 - Correo duplicado', () => pm.response.to.have.status(409));"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [{ "key": "Content-Type", "value": "application/json" }],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"nombre\": \"Juan Duplicado\",\n  \"correo\": \"juan.docente@uao.edu.co\",\n  \"password\": \"password123\",\n  \"facultadId\": {{facultadId}}\n}"
+						},
+						"url": { "raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"] },
+						"description": "Prueba negativa: intenta registrar un correo ya existente. Debe retornar 409."
+					}
+				}
+			]
+		}
+	]
+}
