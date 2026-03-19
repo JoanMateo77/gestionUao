@@ -165,9 +165,9 @@ export default function LoginPage() {
         {tab === 'login' && (
           <form onSubmit={handleLogin}>
             <div style={{ marginBottom: '16px' }}>
-              <label className="label">Email Institucional</label>
+              <label className="label">Correo Electrónico</label>
               <input id="login-correo" className="input-field" type="email"
-                placeholder="correo@uao.edu.co" value={correo}
+                placeholder="correo@ejemplo.com" value={correo}
                 onChange={(e) => setCorreo(e.target.value)} required />
             </div>
             <div style={{ marginBottom: '24px' }}>
@@ -193,11 +193,10 @@ export default function LoginPage() {
                 onChange={(e) => setRegForm({ ...regForm, nombre: e.target.value })} required />
             </div>
             <div style={{ marginBottom: '14px' }}>
-              <label className="label">Email Institucional</label>
+              <label className="label">Correo Electrónico</label>
               <input id="register-correo" className="input-field" type="email"
-                placeholder="correo@uao.edu.co" value={regForm.correo}
+                placeholder="correo@ejemplo.com" value={regForm.correo}
                 onChange={(e) => setRegForm({ ...regForm, correo: e.target.value })} required />
-              <p className="helper-text">Debe terminar en @uao.edu.co</p>
             </div>
             <div style={{ marginBottom: '14px' }}>
               <label className="label">Tipo de Usuario</label>

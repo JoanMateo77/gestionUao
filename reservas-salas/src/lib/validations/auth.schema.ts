@@ -8,11 +8,7 @@ export const registerSchema = z.object({
     .max(100, 'El nombre no puede exceder 100 caracteres'),
   correo: z
     .string()
-    .email('Correo inválido')
-    .refine(
-      (email) => email.endsWith(`@${process.env.INSTITUTIONAL_DOMAIN || 'uao.edu.co'}`),
-      'Debe usar un correo institucional (@uao.edu.co)'
-    ),
+    .email('Correo inválido'),
   password: z
     .string()
     .min(6, 'La contraseña debe tener al menos 6 caracteres')
