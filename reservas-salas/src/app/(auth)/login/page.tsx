@@ -177,7 +177,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)} required />
             </div>
             <button id="login-submit" type="submit" className="btn-accent" disabled={loading}
-              style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, var(--accent) 0%, #9333ea 100%)' }}>
+              style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' }}>
               {loading ? 'Ingresando...' : 'Iniciar Sesión'}
             </button>
           </form>
@@ -197,13 +197,6 @@ export default function LoginPage() {
               <input id="register-correo" className="input-field" type="email"
                 placeholder="correo@ejemplo.com" value={regForm.correo}
                 onChange={(e) => setRegForm({ ...regForm, correo: e.target.value })} required />
-            </div>
-            <div style={{ marginBottom: '14px' }}>
-              <label className="label">Tipo de Usuario</label>
-              <select className="input-field" disabled>
-                <option>Docente</option>
-              </select>
-              <p className="helper-text">Se asigna automáticamente al registrarse</p>
             </div>
             <div style={{ marginBottom: '14px' }}>
               <label className="label">Facultad</label>
@@ -229,7 +222,7 @@ export default function LoginPage() {
                 onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })} required minLength={6} />
             </div>
             <button id="register-submit" type="submit" className="btn-accent" disabled={loading}
-              style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, var(--accent) 0%, #9333ea 100%)' }}>
+              style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' }}>
               {loading ? 'Registrando...' : 'Crear Cuenta'}
             </button>
           </form>
