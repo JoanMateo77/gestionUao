@@ -56,7 +56,12 @@ export default function LoginPage() {
     try {
       const result = await signIn('credentials', { correo, password, redirect: false });
       if (result?.error) {
-        setError(result.error);
+        const errorMessages: Record<string, string> = {
+          CredentialsSignin: 'Correo o contraseña incorrectos',
+          'Correo y contraseña son requeridos': 'Correo y contraseña son requeridos',
+          'Usuario desactivado': 'Tu cuenta está desactivada. Contacta al administrador.',
+        };
+        setError(errorMessages[result.error] ?? 'Error al iniciar sesión. Intenta de nuevo.');
       } else {
         router.push('/reservas');
         router.refresh();

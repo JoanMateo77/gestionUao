@@ -35,12 +35,26 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Credenciales inválidas');
         }
 
+        // Recalcular rol desde lista blanca en cada login (por si cambió tras el registro)
+        const enListaBlanca = await prisma.listaBlanca.findUnique({
+          where: { correoInstitucional: usuario.correoInstitucional },
+        });
+        const rolActual = enListaBlanca ? 'SECRETARIA' : 'DOCENTE';
+
+        // Si el rol cambió, actualizar en DB
+        if (rolActual !== usuario.rol) {
+          await prisma.usuario.update({
+            where: { id: usuario.id },
+            data: { rol: rolActual },
+          });
+        }
+
         return {
           id: usuario.id,
           nombre: usuario.nombre,
           email: usuario.correoInstitucional,
           correoInstitucional: usuario.correoInstitucional,
-          rol: usuario.rol,
+          rol: rolActual,
           facultadId: usuario.facultadId,
         };
       },
