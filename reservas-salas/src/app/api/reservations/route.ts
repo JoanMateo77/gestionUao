@@ -1,4 +1,5 @@
 // src/app/api/reservations/route.ts
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
@@ -16,12 +17,21 @@ export async function GET(req: Request) {
     const page = Number(searchParams.get('page')) || 1;
     const limit = Number(searchParams.get('limit')) || 20;
     const estado = searchParams.get('estado') as EstadoReserva | undefined;
+    // Filtros adicionales solo para SECRETARIA (HU-13)
+    const salaId = searchParams.get('salaId') ? Number(searchParams.get('salaId')) : undefined;
+    const filtroUsuarioId = searchParams.get('usuarioId') ? Number(searchParams.get('usuarioId')) : undefined;
+    const fechaInicio = searchParams.get('fechaInicio') ? new Date(searchParams.get('fechaInicio')! + 'T00:00:00.000Z') : undefined;
+    const fechaFin = searchParams.get('fechaFin') ? new Date(searchParams.get('fechaFin')! + 'T23:59:59.999Z') : undefined;
 
     const result = await reservationService.list({
       facultadId: session.user.facultadId,
       usuarioId: session.user.id,
       rol: session.user.rol,
       estado: estado || undefined,
+      salaId: session.user.rol === 'SECRETARIA' ? salaId : undefined,
+      filtroUsuarioId: session.user.rol === 'SECRETARIA' ? filtroUsuarioId : undefined,
+      fechaInicio: session.user.rol === 'SECRETARIA' ? fechaInicio : undefined,
+      fechaFin: session.user.rol === 'SECRETARIA' ? fechaFin : undefined,
       page,
       limit,
     });
