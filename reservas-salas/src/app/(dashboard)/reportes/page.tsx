@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -28,11 +28,12 @@ export default function ReportesPage() {
   const [loading, setLoading] = useState(false);
   const [datos, setDatos] = useState<FilaReservas[] | FilaHoras[] | FilaUsuario[] | null>(null);
 
-  // Redirigir si no es SECRETARIA
-  if (status === 'authenticated' && session?.user?.rol !== 'SECRETARIA') {
-    router.replace('/reservas');
-    return null;
-  }
+  // Redirigir si no es SECRETARIA (dentro de useEffect, no durante render)
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.rol !== 'SECRETARIA') {
+      router.replace('/reservas');
+    }
+  }, [status, session, router]);
 
   const generarReporte = useCallback(async () => {
     if (fechaInicio && fechaFin && fechaInicio > fechaFin) {
@@ -52,6 +53,10 @@ export default function ReportesPage() {
     } catch { toast.error('Error de conexión'); }
     finally { setLoading(false); }
   }, [tipo, fechaInicio, fechaFin]);
+
+  if (status === 'loading' || (status === 'authenticated' && session?.user?.rol !== 'SECRETARIA')) {
+    return <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><div className="spinner" style={{ width: '36px', height: '36px' }} /></div>;
+  }
 
   return (
     <div className="fade-in">
