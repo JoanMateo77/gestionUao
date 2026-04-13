@@ -35,6 +35,14 @@ const SECRETARIAS: { correoInstitucional: string; nombre: string }[] = [
     correoInstitucional: 'mateopro1098@gmail.com',
     nombre: 'Secretaria Mateo Pro',
   },
+  {
+    correoInstitucional: 'Carlos.gamez@uao.edu.co',
+    nombre: 'Carlos Gámez',
+  },
+  {
+    correoInstitucional: 'Maria_pau.hernandez@uao.edu.co',
+    nombre: 'María Paula Hernández',
+  },
 ];
 
 async function main() {
