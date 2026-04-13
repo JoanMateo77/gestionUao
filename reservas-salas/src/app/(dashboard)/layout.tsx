@@ -13,6 +13,7 @@ const navItems = {
   SECRETARIA: [
     { href: '/salas', label: 'Gestión de Salas' },
     { href: '/reservas', label: 'Reservas' },
+    { href: '/reportes', label: 'Reportes' },
   ],
 };
 

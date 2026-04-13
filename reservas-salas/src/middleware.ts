@@ -7,16 +7,10 @@ export default withAuth(
     const { pathname } = req.nextUrl;
     const token = req.nextauth.token;
 
-    // Rutas que requieren rol SECRETARIA
-    const secretariaRoutes = ['/salas'];
-
-    // Si la ruta requiere SECRETARIA y el usuario es DOCENTE
-    if (
-      secretariaRoutes.some((route) => pathname.startsWith(route)) &&
-      token?.rol === 'DOCENTE'
-    ) {
-      // DOCENTE puede ver salas pero no crear/editar (eso se valida en API)
-      // Permitir acceso de lectura, las restricciones se aplican en la UI y API
+    // Rutas exclusivas de SECRETARIA — bloquear DOCENTE a nivel de middleware
+    const secretariaOnly = ['/reportes'];
+    if (secretariaOnly.some((r) => pathname === r || pathname.startsWith(r + '/')) && token?.rol !== 'SECRETARIA') {
+      return NextResponse.redirect(new URL('/reservas', req.url));
     }
 
     return NextResponse.next();
@@ -33,6 +27,7 @@ export const config = {
     '/salas/:path*',
     '/reservas/:path*',
     '/historial/:path*',
+    '/reportes',
     '/reportes/:path*',
     '/dashboard/:path*',
   ],

@@ -1,7 +1,7 @@
 // src/services/reservation.service.ts
 import { reservationRepository } from '@/repositories/reservation.repository';
 import { roomRepository } from '@/repositories/room.repository';
-import { createReservationSchema } from '@/lib/validations/reservation.schema';
+import { createReservationSchema, adjustReservationSchema } from '@/lib/validations/reservation.schema';
 import { audit } from '@/lib/audit';
 import type { EstadoReserva } from '@prisma/client';
 
@@ -23,6 +23,10 @@ export const reservationService = {
     usuarioId: number;
     rol: 'DOCENTE' | 'SECRETARIA';
     estado?: EstadoReserva;
+    salaId?: number;
+    filtroUsuarioId?: number;
+    fechaInicio?: Date;
+    fechaFin?: Date;
     page?: number;
     limit?: number;
   }) {
@@ -31,6 +35,10 @@ export const reservationService = {
       // DOCENTE solo ve sus propias reservas, SECRETARIA ve todas las de la facultad
       usuarioId: params.rol === 'DOCENTE' ? params.usuarioId : undefined,
       estado: params.estado,
+      salaId: params.salaId,
+      filtroUsuarioId: params.filtroUsuarioId,
+      fechaInicio: params.fechaInicio,
+      fechaFin: params.fechaFin,
       page: params.page,
       limit: params.limit,
     });
@@ -134,4 +142,85 @@ export const reservationService = {
 
     return cancelled;
   },
+
+  /** Ajustar reserva — solo SECRETARIA (HU-11) */
+  async adjust(
+    reservaId: number,
+    data: { salaId?: number; fecha?: string; horaInicio?: string; horaFin?: string; motivo?: string },
+    usuarioId: number,
+    facultadId: number,
+    ip?: string
+  ) {
+    const reserva = await reservationRepository.findById(reservaId);
+    if (!reserva) throw new Error('Reserva no encontrada');
+    if (reserva.estado === 'CANCELADA') throw new Error('No se puede ajustar una reserva cancelada');
+    if (reserva.sala.facultadId !== facultadId) throw new Error('No puede ajustar reservas de otra facultad');
+
+    const validated = adjustReservationSchema.parse(data);
+
+    const salaId = validated.salaId ?? reserva.salaId;
+
+    // Si cambia la sala, verificar que esté habilitada y pertenezca a la facultad
+    if (validated.salaId) {
+      const sala = await roomRepository.findById(salaId);
+      if (!sala) throw new Error('Sala no encontrada');
+      if (!sala.habilitada) throw new Error('La sala no está habilitada para reservas');
+      if (sala.facultadId !== facultadId) throw new Error('No puede reservar salas de otra facultad');
+    }
+
+    // Resolver tiempos: usar los nuevos si vienen, si no los existentes
+    const fecha = validated.fecha
+      ? new Date(validated.fecha + 'T00:00:00.000Z')
+      : reserva.fecha;
+
+    const horaInicioStr = validated.horaInicio ?? formatTime(reserva.horaInicio);
+    const horaFinStr = validated.horaFin ?? formatTime(reserva.horaFin);
+    const horaInicio = timeStringToDate(horaInicioStr);
+    const horaFin = timeStringToDate(horaFinStr);
+
+    // Validar franja horaria (R-02)
+    const iniMin = horaInicio.getUTCHours() * 60 + horaInicio.getUTCMinutes();
+    const finMin = horaFin.getUTCHours() * 60 + horaFin.getUTCMinutes();
+    if (iniMin < 7 * 60) throw new Error('La hora de inicio no puede ser antes de las 7:00 AM (R-02)');
+    if (finMin > 21 * 60 + 30) throw new Error('La hora de fin no puede ser después de las 9:30 PM (R-02)');
+    if (iniMin >= finMin) throw new Error('La hora de inicio debe ser anterior a la hora de fin');
+
+    // Verificar solapamiento excluyendo la reserva actual (R-03)
+    const hasOverlap = await reservationRepository.checkOverlap(salaId, fecha, horaInicio, horaFin, reservaId);
+    if (hasOverlap) throw new Error('El nuevo horario se solapa con otra reserva confirmada en esa sala (R-03)');
+
+    const datosAnteriores = {
+      salaId: reserva.salaId,
+      fecha: reserva.fecha,
+      horaInicio: formatTime(reserva.horaInicio),
+      horaFin: formatTime(reserva.horaFin),
+      motivo: reserva.motivo,
+    };
+
+    const updated = await reservationRepository.update(reservaId, {
+      salaId,
+      fecha,
+      horaInicio,
+      horaFin,
+      motivo: validated.motivo !== undefined ? validated.motivo : (reserva.motivo ?? ''),
+    });
+
+    await audit({
+      usuarioId,
+      accion: 'AJUSTAR_RESERVA',
+      entidad: 'RESERVA',
+      entidadId: reservaId,
+      datosAnteriores,
+      datosNuevos: { salaId, fecha: validated.fecha, horaInicio: horaInicioStr, horaFin: horaFinStr, motivo: validated.motivo },
+      ipAddress: ip,
+    });
+
+    return updated;
+  },
 };
+
+function formatTime(date: Date): string {
+  const h = date.getUTCHours().toString().padStart(2, '0');
+  const m = date.getUTCMinutes().toString().padStart(2, '0');
+  return `${h}:${m}`;
+}

@@ -48,7 +48,8 @@ export default function RecursosPage() {
     finally { setAdding(false); }
   };
 
-  const handleRemove = async (id: number) => {
+  const handleRemove = async (id: number, nombre: string) => {
+    if (!confirm(`¿Retirar el recurso "${nombre}" de esta sala?`)) return;
     try {
       const res = await fetch(`/api/rooms/${salaId}/resources/${id}`, { method: 'DELETE' });
       if (!res.ok) { toast.error('Error'); return; }
@@ -110,7 +111,7 @@ export default function RecursosPage() {
                   {sr.recurso.descripcion && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sr.recurso.descripcion}</div>}
                 </div>
               </div>
-              <button className="btn-danger" onClick={() => handleRemove(sr.id)} style={{ padding: '8px' }}>
+              <button className="btn-danger" onClick={() => handleRemove(sr.id, sr.recurso.nombre)} style={{ padding: '8px' }}>
                 <Trash2 size={14} />
               </button>
             </div>

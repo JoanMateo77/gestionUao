@@ -8,10 +8,14 @@ export const reservationRepository = {
     facultadId: number;
     usuarioId?: number;
     estado?: EstadoReserva;
+    salaId?: number;
+    filtroUsuarioId?: number;
+    fechaInicio?: Date;
+    fechaFin?: Date;
     page?: number;
     limit?: number;
   }) {
-    const { facultadId, usuarioId, estado, page = 1, limit = 20 } = params;
+    const { facultadId, usuarioId, estado, salaId, filtroUsuarioId, fechaInicio, fechaFin, page = 1, limit = 20 } = params;
 
     const where: Record<string, unknown> = {
       sala: { facultadId },
@@ -19,6 +23,14 @@ export const reservationRepository = {
 
     if (usuarioId) where.usuarioId = usuarioId;
     if (estado) where.estado = estado;
+    if (salaId) where.salaId = salaId;
+    if (filtroUsuarioId) where.usuarioId = filtroUsuarioId;
+    if (fechaInicio || fechaFin) {
+      where.fecha = {
+        ...(fechaInicio ? { gte: fechaInicio } : {}),
+        ...(fechaFin ? { lte: fechaFin } : {}),
+      };
+    }
 
     const [reservas, total] = await Promise.all([
       prisma.reserva.findMany({
@@ -105,6 +117,44 @@ export const reservationRepository = {
         canceladoPor,
       },
     });
+  },
+
+  /** Actualizar reserva (HU-11: ajustar) */
+  async update(id: number, data: {
+    salaId?: number;
+    fecha?: Date;
+    horaInicio?: Date;
+    horaFin?: Date;
+    motivo?: string;
+  }) {
+    return prisma.reserva.update({
+      where: { id },
+      data,
+      include: {
+        sala: true,
+        usuario: { select: { id: true, nombre: true, correoInstitucional: true } },
+      },
+    });
+  },
+
+  /** Cancelar todas las reservas futuras confirmadas de una sala (HU-06 E3) */
+  async cancelFutureByRoom(salaId: number, canceladoPor: number) {
+    const today = new Date();
+    today.setUTCHours(0, 0, 0, 0);
+
+    const afectadas = await prisma.reserva.findMany({
+      where: { salaId, estado: 'CONFIRMADA', fecha: { gte: today } },
+      select: { id: true },
+    });
+
+    if (afectadas.length > 0) {
+      await prisma.reserva.updateMany({
+        where: { salaId, estado: 'CONFIRMADA', fecha: { gte: today } },
+        data: { estado: 'CANCELADA', fechaCancelacion: new Date(), canceladoPor },
+      });
+    }
+
+    return afectadas.length;
   },
 
   /** Obtener reservas de una sala en una fecha (para calendario) */

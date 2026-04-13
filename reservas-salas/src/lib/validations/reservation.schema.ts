@@ -8,7 +8,15 @@ export const createReservationSchema = z.object({
     .positive('Seleccione una sala válida'),
   fecha: z
     .string({ required_error: 'La fecha es requerida' })
-    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)'),
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)')
+    .refine(
+      (val) => {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        return new Date(val + 'T00:00:00.000Z') >= today;
+      },
+      { message: 'No se pueden crear reservas en fechas pasadas' }
+    ),
   horaInicio: z
     .string({ required_error: 'La hora de inicio es requerida' })
     .regex(/^\d{2}:\d{2}$/, 'Formato de hora inválido (HH:MM)'),
@@ -46,3 +54,25 @@ export const createReservationSchema = z.object({
 );
 
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
+
+/** Schema para ajustar reserva (HU-11) — todos los campos opcionales */
+export const adjustReservationSchema = z.object({
+  salaId: z.number().int().positive().optional(),
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'Formato de fecha inválido (YYYY-MM-DD)')
+    .refine(
+      (val) => {
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        return new Date(val + 'T00:00:00.000Z') >= today;
+      },
+      { message: 'No se pueden ajustar reservas a fechas pasadas' }
+    )
+    .optional(),
+  horaInicio: z.string().regex(/^\d{2}:\d{2}$/, 'Formato HH:MM').optional(),
+  horaFin: z.string().regex(/^\d{2}:\d{2}$/, 'Formato HH:MM').optional(),
+  motivo: z.string().max(255).optional(),
+});
+
+export type AdjustReservationInput = z.infer<typeof adjustReservationSchema>;

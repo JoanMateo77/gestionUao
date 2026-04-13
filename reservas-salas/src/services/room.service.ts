@@ -1,5 +1,6 @@
 // src/services/room.service.ts
 import { roomRepository } from '@/repositories/room.repository';
+import { reservationRepository } from '@/repositories/reservation.repository';
 import { createRoomSchema, updateRoomSchema, updateRoomStatusSchema } from '@/lib/validations/room.schema';
 import { audit } from '@/lib/audit';
 
@@ -105,16 +106,22 @@ export const roomService = {
 
     const updated = await roomRepository.updateStatus(id, habilitada);
 
+    // HU-06 E3: al deshabilitar, cancelar reservas futuras confirmadas (R-05)
+    let reservasCanceladas = 0;
+    if (!habilitada) {
+      reservasCanceladas = await reservationRepository.cancelFutureByRoom(id, usuarioId);
+    }
+
     await audit({
       usuarioId,
       accion: 'CAMBIAR_ESTADO_SALA',
       entidad: 'SALA',
       entidadId: id,
       datosAnteriores: { habilitada: sala.habilitada },
-      datosNuevos: { habilitada },
+      datosNuevos: { habilitada, reservasCanceladas },
       ipAddress: ip,
     });
 
-    return updated;
+    return { ...updated, reservasCanceladas };
   },
 };
