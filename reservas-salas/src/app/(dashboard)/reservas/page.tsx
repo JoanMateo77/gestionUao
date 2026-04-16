@@ -119,6 +119,10 @@ export default function ReservasPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
     try {
+      if (form.fecha) {
+        const day = new Date(form.fecha + 'T00:00:00.000Z').getUTCDay();
+        if (day === 0) { toast.error('No se pueden hacer reservas los domingos'); setSaving(false); return; }
+      }
       const res = await fetch('/api/reservations', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ...form, salaId: Number(form.salaId) }),
@@ -154,6 +158,10 @@ export default function ReservasPage() {
   const handleAdjust = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!adjusting) return;
+    if (adjustForm.fecha) {
+      const day = new Date(adjustForm.fecha + 'T00:00:00.000Z').getUTCDay();
+      if (day === 0) { toast.error('No se pueden hacer reservas los domingos'); return; }
+    }
     setSavingAdjust(true);
     try {
       const res = await fetch(`/api/reservations/${adjusting.id}`, {
@@ -383,6 +391,7 @@ export default function ReservasPage() {
                 <li>Horario: 7:00 AM — 9:30 PM</li>
                 <li>No se permiten reservas superpuestas</li>
                 <li>No se permiten reservas en fechas pasadas</li>
+                <li>No se permiten reservas los domingos</li>
               </ul>
             </div>
 

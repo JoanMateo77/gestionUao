@@ -32,7 +32,7 @@ export default function LoginPage() {
     fetch('/api/faculties')
       .then((res) => res.json())
       .then((data) => { if (Array.isArray(data)) setFacultades(data); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -73,9 +73,19 @@ export default function LoginPage() {
     }
   };
 
+  const specialCharRegex = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/;
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    if (regForm.password.length < 8) {
+      setError('La contraseña debe tener al menos 8 caracteres');
+      return;
+    }
+    if (!specialCharRegex.test(regForm.password)) {
+      setError('La contraseña debe contener al menos un carácter especial');
+      return;
+    }
     if (regForm.password !== regForm.confirmPassword) {
       setError('Las contraseñas no coinciden');
       return;
@@ -95,7 +105,10 @@ export default function LoginPage() {
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error || 'Error al registrarse'); return; }
-      router.push('/login?registered=true');
+      setRegForm({ nombre: '', correo: '', password: '', confirmPassword: '', facultadId: 0 });
+      setSuccess('¡Registro exitoso! Ahora puedes iniciar sesión.');
+      setTab('login');
+
     } catch {
       setError('Error de conexión');
     } finally {
@@ -217,14 +230,14 @@ export default function LoginPage() {
               <label className="label">Contraseña</label>
               <input id="register-password" className="input-field" type="password"
                 placeholder="••••••••" value={regForm.password}
-                onChange={(e) => setRegForm({ ...regForm, password: e.target.value })} required minLength={6} />
-              <p className="helper-text">Mínimo 6 caracteres</p>
+                onChange={(e) => setRegForm({ ...regForm, password: e.target.value })} required minLength={8} />
+              <p className="helper-text">Mínimo 8 caracteres y al menos un carácter especial (!@#$%...)</p>
             </div>
             <div style={{ marginBottom: '24px' }}>
               <label className="label">Confirmar Contraseña</label>
               <input id="register-confirm" className="input-field" type="password"
                 placeholder="••••••••" value={regForm.confirmPassword}
-                onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })} required minLength={6} />
+                onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })} required minLength={8} />
             </div>
             <button id="register-submit" type="submit" className="btn-accent" disabled={loading}
               style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' }}>

@@ -15,8 +15,8 @@ export const registerSchema = z.object({
     ),
   password: z
     .string()
-    .min(6, 'La contraseña debe tener al menos 6 caracteres')
-    .max(50, 'La contraseña no puede exceder 50 caracteres'),
+    .min(8, 'La contraseña debe tener mínimo 8 caracteres')
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'La contraseña debe contener al menos un carácter especial'),
   facultadId: z
     .number({ required_error: 'Seleccione una facultad' })
     .int()

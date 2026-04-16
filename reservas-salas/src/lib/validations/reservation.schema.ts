@@ -51,6 +51,12 @@ export const createReservationSchema = z.object({
     return minutos <= 21 * 60 + 30; // <= 21:30
   },
   { message: 'La hora de fin no puede ser después de las 9:30 PM (R-02)', path: ['horaFin'] }
+).refine(
+  (data) => {
+    const day = new Date(data.fecha + 'T00:00:00.000Z').getUTCDay(); // 0 = domingo
+    return day !== 0;
+  },
+  { message: 'No se pueden hacer reservas los domingos', path: ['fecha'] }
 );
 
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
@@ -73,6 +79,13 @@ export const adjustReservationSchema = z.object({
   horaInicio: z.string().regex(/^\d{2}:\d{2}$/, 'Formato HH:MM').optional(),
   horaFin: z.string().regex(/^\d{2}:\d{2}$/, 'Formato HH:MM').optional(),
   motivo: z.string().max(255).optional(),
-});
+}).refine(
+  (data) => {
+    if (!data.fecha) return true; // campo opcional, si no viene no validar
+    const day = new Date(data.fecha + 'T00:00:00.000Z').getUTCDay();
+    return day !== 0;
+  },
+  { message: 'No se pueden hacer reservas los domingos', path: ['fecha'] }
+);
 
 export type AdjustReservationInput = z.infer<typeof adjustReservationSchema>;
