@@ -90,12 +90,4 @@ npm run db:seed      # Poblar base de datos
 npm run db:studio    # Abrir Prisma Studio
 ```
 
-## Despliegue en Vercel
 
-1. Conecta el repositorio en Vercel y configura el **Root Directory** como `reservas-salas`
-2. Agrega las variables de entorno en el panel de Vercel
-3. El build ejecuta `prisma generate && next build` automáticamente
-
----
-
-Universidad Autónoma de Occidente — Proyecto académico de gestión de espacios
