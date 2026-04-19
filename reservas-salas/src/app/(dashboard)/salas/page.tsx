@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { SkeletonCard, EmptyState } from '@/components/ui';
+import { useDebounce } from '@/lib/hooks/useDebounce';
 
 interface SalaRecurso {
   id: number;
@@ -29,6 +30,7 @@ export default function SalasPage() {
   const [salas, setSalas] = useState<Sala[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const debouncedSearch = useDebounce(search, 300);
   const [showModal, setShowModal] = useState(false);
   const [editingSala, setEditingSala] = useState<Sala | null>(null);
   const [form, setForm] = useState({ nombre: '', ubicacion: '', capacidad: 10 });
@@ -77,8 +79,8 @@ export default function SalasPage() {
   };
 
   const filtered = salas.filter((s) =>
-    s.nombre.toLowerCase().includes(search.toLowerCase()) ||
-    s.ubicacion?.toLowerCase().includes(search.toLowerCase())
+    s.nombre.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+    s.ubicacion?.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   const disponibles = salas.filter((s) => s.habilitada).length;

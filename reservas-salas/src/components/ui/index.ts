@@ -7,4 +7,6 @@ export { Table } from './Table';
 export { ConfirmDialog } from './ConfirmDialog';
 export { Skeleton, SkeletonCard } from './Skeleton';
 export { EmptyState } from './EmptyState';
+export { Breadcrumbs } from './Breadcrumbs';
+export type { BreadcrumbItem } from './Breadcrumbs';
 export { cn } from './cn';

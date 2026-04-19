@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, Trash2, Cpu, ArrowLeft, Package } from 'lucide-react';
 import Link from 'next/link';
-import { ConfirmDialog, EmptyState } from '@/components/ui';
+import { ConfirmDialog, EmptyState, Breadcrumbs } from '@/components/ui';
 
 interface Recurso { id: number; nombre: string; descripcion: string | null; }
 interface SalaRecurso { id: number; recurso: Recurso; }
@@ -71,6 +71,15 @@ export default function RecursosPage() {
 
   return (
     <div className="fade-in">
+      <Breadcrumbs
+        items={[
+          { label: 'Inicio', href: '/' },
+          { label: 'Salas', href: '/salas' },
+          { label: sala?.nombre || 'Sala' },
+          { label: 'Recursos' },
+        ]}
+      />
+
       <Link href="/salas" style={{
         display: 'inline-flex', alignItems: 'center', gap: '6px',
         color: 'var(--text-secondary)', textDecoration: 'none', fontSize: '0.85rem', marginBottom: '16px',
