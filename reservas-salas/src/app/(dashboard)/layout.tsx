@@ -5,6 +5,7 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { BookOpen, LogOut, User, Menu, X } from 'lucide-react';
+import { ThemeToggle } from '@/components/ui';
 
 const navItems = {
   DOCENTE: [
@@ -139,6 +140,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               </div>
             </div>
+            <ThemeToggle />
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: '/login' })}
@@ -225,6 +227,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {session.user.email}
             </div>
           </div>
+          <ThemeToggle />
         </div>
       </aside>
 

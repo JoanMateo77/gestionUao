@@ -9,4 +9,5 @@ export { Skeleton, SkeletonCard } from './Skeleton';
 export { EmptyState } from './EmptyState';
 export { Breadcrumbs } from './Breadcrumbs';
 export type { BreadcrumbItem } from './Breadcrumbs';
+export { ThemeToggle } from './ThemeToggle';
 export { cn } from './cn';
