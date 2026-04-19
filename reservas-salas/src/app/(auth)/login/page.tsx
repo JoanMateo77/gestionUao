@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, AlertCircle } from 'lucide-react';
-import { Input, Card } from '@/components/ui';
+import { Input, Card, ThemeToggle } from '@/components/ui';
 
 interface Facultad {
   id: number;
@@ -121,8 +121,12 @@ export default function LoginPage() {
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', padding: '24px',
-      background: 'linear-gradient(180deg, #f0f0f5 0%, #e8e8f0 100%)',
+      background: 'linear-gradient(180deg, var(--bg-primary) 0%, var(--bg-secondary) 100%)',
+      position: 'relative',
     }}>
+      <div style={{ position: 'absolute', top: '16px', right: '16px' }}>
+        <ThemeToggle />
+      </div>
       {/* Logo */}
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
         <div style={{
