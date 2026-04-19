@@ -216,7 +216,7 @@ export default function ReservasPage() {
                 <span style={{
                   position: 'absolute', top: '-6px', right: '-6px',
                   width: '14px', height: '14px', borderRadius: '50%',
-                  background: 'var(--primary)', fontSize: '0.6rem', color: '#fff',
+                  background: 'var(--primary)', fontSize: '0.6rem', color: 'var(--primary-fg)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>!</span>
               )}

@@ -134,7 +134,7 @@ export default function LoginPage() {
           background: 'var(--primary)', display: 'inline-flex',
           alignItems: 'center', justifyContent: 'center', marginBottom: '16px',
         }}>
-          <BookOpen size={30} color="white" />
+          <BookOpen size={30} style={{ color: 'var(--primary-fg)' }} />
         </div>
         <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
           Sistema de Reservas

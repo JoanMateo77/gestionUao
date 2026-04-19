@@ -174,7 +174,8 @@ C4Component
         Component(authRoutes, "Auth Routes", "/api/auth/*", "Registro, login NextAuth, sesión")
         Component(roomRoutes, "Room Routes", "/api/rooms/*", "CRUD salas, estado, recursos")
         Component(resRoutes, "Reservation Routes", "/api/reservations/*", "Crear, listar, cancelar reservas")
-        Component(facRoutes, "Faculty Routes", "/api/faculties", "Listar facultades activas")
+        Component(facRoutes, "Faculty Routes", "/api/faculties", "Listar facultades activas — endpoint público sin autenticación")
+        Component(reportRoutes, "Report Routes", "/api/reports", "Reportes por conteo, horas y usuario — solo SECRETARIA")
 
         Component(roomSvc, "RoomService", "room.service.ts", "Validación de nombres únicos, permisos por facultad")
         Component(resSvc, "ReservationService", "reservation.service.ts", "Anti-solapamiento, franja horaria, permisos por rol")
@@ -182,19 +183,28 @@ C4Component
 
         Component(auditLib, "AuditLogger", "audit.ts", "Registra todas las acciones en log_auditoria")
         Component(zodSchemas, "Zod Schemas", "validations/*.schema.ts", "Validación de entrada con Zod")
-        Component(repos, "Repositories", "repositories/*.ts", "Abstracción de Prisma queries")
+
+        Component(roomRepo, "RoomRepository", "room.repository.ts", "Queries de salas: findById, existsByNombre, create, update, updateStatus")
+        Component(resRepo, "ReservationRepository", "reservation.repository.ts", "Queries de reservas: checkOverlap, cancelFutureByRoom, create, cancel")
+        Component(rsrcRepo, "ResourceRepository", "resource.repository.ts", "Queries de recursos: listBySala, addToSala, removeFromSala")
     }
 
     ContainerDb(db, "PostgreSQL", "BD")
 
     Rel(roomRoutes, roomSvc, "Delega")
     Rel(resRoutes, resSvc, "Delega")
-    Rel(roomSvc, repos, "Consulta")
-    Rel(resSvc, repos, "Consulta")
-    Rel(rsrcSvc, repos, "Consulta")
+    Rel(roomRoutes, rsrcSvc, "Delega recursos")
+    Rel(reportRoutes, resRepo, "Consulta directa para reportes")
+    Rel(roomSvc, roomRepo, "Consulta")
+    Rel(resSvc, resRepo, "Consulta")
+    Rel(resSvc, roomRepo, "Verifica sala habilitada")
+    Rel(rsrcSvc, rsrcRepo, "Consulta")
     Rel(roomSvc, auditLib, "Registra acciones")
     Rel(resSvc, auditLib, "Registra acciones")
-    Rel(repos, db, "Prisma ORM")
+    Rel(rsrcSvc, auditLib, "Registra acciones")
+    Rel(roomRepo, db, "Prisma ORM")
+    Rel(resRepo, db, "Prisma ORM")
+    Rel(rsrcRepo, db, "Prisma ORM")
 ```
 
 ---

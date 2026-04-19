@@ -83,7 +83,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
                 style={{ background: 'var(--primary)' }}
               >
-                <BookOpen size={18} color="white" />
+                <BookOpen size={18} style={{ color: 'var(--primary-fg)' }} />
               </div>
               <div className="hidden sm:block min-w-0">
                 <div className="font-bold text-sm leading-tight truncate">
@@ -181,7 +181,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
               style={{ background: 'var(--primary)' }}
             >
-              <BookOpen size={18} color="white" />
+              <BookOpen size={18} style={{ color: 'var(--primary-fg)' }} />
             </div>
             <div className="font-bold text-sm truncate">Menú</div>
           </div>
