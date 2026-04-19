@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, Trash2, Cpu, ArrowLeft, Package } from 'lucide-react';
 import Link from 'next/link';
+import { ConfirmDialog, EmptyState } from '@/components/ui';
 
 interface Recurso { id: number; nombre: string; descripcion: string | null; }
 interface SalaRecurso { id: number; recurso: Recurso; }
@@ -19,6 +20,8 @@ export default function RecursosPage() {
   const [loading, setLoading] = useState(true);
   const [selectedRecurso, setSelectedRecurso] = useState(0);
   const [adding, setAdding] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<{ id: number; nombre: string } | null>(null);
+  const [removing, setRemoving] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -48,13 +51,20 @@ export default function RecursosPage() {
     finally { setAdding(false); }
   };
 
-  const handleRemove = async (id: number, nombre: string) => {
-    if (!confirm(`¿Retirar el recurso "${nombre}" de esta sala?`)) return;
+  const handleRemove = (id: number, nombre: string) => {
+    setRemoveTarget({ id, nombre });
+  };
+
+  const confirmRemove = async () => {
+    if (!removeTarget) return;
+    setRemoving(true);
     try {
-      const res = await fetch(`/api/rooms/${salaId}/resources/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/rooms/${salaId}/resources/${removeTarget.id}`, { method: 'DELETE' });
       if (!res.ok) { toast.error('Error'); return; }
       toast.success('Recurso retirado'); fetchData();
+      setRemoveTarget(null);
     } catch { toast.error('Error'); }
+    finally { setRemoving(false); }
   };
 
   if (loading) return <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><div className="spinner" /></div>;
@@ -97,7 +107,11 @@ export default function RecursosPage() {
 
       {/* Assigned */}
       {assigned.length === 0 ? (
-        <div className="empty-state"><Package size={40} /><p style={{ marginTop: '8px' }}>No hay recursos asignados</p></div>
+        <EmptyState
+          icon={<Package size={40} />}
+          title="No hay recursos asignados"
+          description="Selecciona un recurso del listado superior para asignarlo a esta sala."
+        />
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
           {assigned.map((sr) => (
@@ -111,13 +125,31 @@ export default function RecursosPage() {
                   {sr.recurso.descripcion && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sr.recurso.descripcion}</div>}
                 </div>
               </div>
-              <button className="btn-danger" onClick={() => handleRemove(sr.id, sr.recurso.nombre)} style={{ padding: '8px' }}>
+              <button
+                className="btn-danger"
+                onClick={() => handleRemove(sr.id, sr.recurso.nombre)}
+                title={`Retirar ${sr.recurso.nombre}`}
+                aria-label={`Retirar ${sr.recurso.nombre} de la sala`}
+                style={{ padding: '8px' }}
+              >
                 <Trash2 size={14} />
               </button>
             </div>
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={removeTarget !== null}
+        onClose={() => (removing ? null : setRemoveTarget(null))}
+        onConfirm={confirmRemove}
+        title="Retirar recurso"
+        description={removeTarget ? `¿Retirar el recurso "${removeTarget.nombre}" de esta sala?` : ''}
+        confirmText="Retirar"
+        cancelText="Cancelar"
+        variant="danger"
+        loading={removing}
+      />
     </div>
   );
 }

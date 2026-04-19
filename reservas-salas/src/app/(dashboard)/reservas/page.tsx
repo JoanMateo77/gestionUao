@@ -7,6 +7,7 @@ import {
   Plus, CalendarDays, XCircle, Clock, MapPin, User, X, Edit3, Filter,
 } from 'lucide-react';
 import Link from 'next/link';
+import { ConfirmDialog, SkeletonCard, EmptyState } from '@/components/ui';
 
 interface Sala {
   id: number;
@@ -87,6 +88,10 @@ export default function ReservasPage() {
   const [adjustForm, setAdjustForm] = useState({ salaId: 0, fecha: '', horaInicio: '', horaFin: '', motivo: '' });
   const [savingAdjust, setSavingAdjust] = useState(false);
 
+  // Confirmación de cancelación
+  const [cancelId, setCancelId] = useState<number | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
   const buildQuery = useCallback(() => {
     const q = new URLSearchParams({ page: String(page), limit: '20' });
     if (filter) q.set('estado', filter);
@@ -134,14 +139,19 @@ export default function ReservasPage() {
     finally { setSaving(false); }
   };
 
-  const handleCancel = async (id: number) => {
-    if (!confirm('¿Cancelar esta reserva?')) return;
+  const handleCancel = (id: number) => setCancelId(id);
+
+  const confirmCancel = async () => {
+    if (cancelId == null) return;
+    setCancelLoading(true);
     try {
-      const res = await fetch(`/api/reservations/${id}/cancel`, { method: 'PATCH' });
+      const res = await fetch(`/api/reservations/${cancelId}/cancel`, { method: 'PATCH' });
       const result = await res.json();
       if (!res.ok) { toast.error(result.error || 'Error al cancelar'); return; }
       toast.success('Reserva cancelada'); fetchReservas();
+      setCancelId(null);
     } catch { toast.error('Error'); }
+    finally { setCancelLoading(false); }
   };
 
   const openAdjust = (r: Reserva) => {
@@ -294,16 +304,25 @@ export default function ReservasPage() {
 
       {/* Reservas */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><div className="spinner" /></div>
-      ) : reservas.length === 0 ? (
-        <div className="empty-state">
-          <CalendarDays size={40} />
-          <p style={{ marginTop: '8px' }}>No se encontraron reservas</p>
-          <button className="btn-primary" onClick={() => setShowModal(true)}
-            style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Plus size={16} /> Crear reserva
-          </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
+      ) : reservas.length === 0 ? (
+        <EmptyState
+          icon={<CalendarDays size={40} />}
+          title="No se encontraron reservas"
+          description="Crea una nueva reserva para comenzar a gestionar tus salas."
+          action={
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setShowModal(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Plus size={16} /> Crear reserva
+            </button>
+          }
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {reservas.map((r) => (
@@ -375,7 +394,7 @@ export default function ReservasPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
               <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>Crear Reserva</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
+              <button type="button" onClick={() => setShowModal(false)} title="Cerrar" aria-label="Cerrar" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '20px' }}>
               Reserva de sala de estudio
@@ -451,7 +470,7 @@ export default function ReservasPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
               <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>Ajustar Reserva</h2>
-              <button onClick={() => setAdjusting(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
+              <button type="button" onClick={() => setAdjusting(null)} title="Cerrar" aria-label="Cerrar" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '16px' }}>
               Reserva de <strong>{adjusting.usuario.nombre}</strong> — original: {formatDate(adjusting.fecha.split('T')[0])} · {formatTime(adjusting.horaInicio)}–{formatTime(adjusting.horaFin)}
@@ -504,6 +523,18 @@ export default function ReservasPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={cancelId !== null}
+        onClose={() => (cancelLoading ? null : setCancelId(null))}
+        onConfirm={confirmCancel}
+        title="Cancelar reserva"
+        description="Esta acción no se puede deshacer. La reserva quedará marcada como cancelada."
+        confirmText="Sí, cancelar"
+        cancelText="Volver"
+        variant="danger"
+        loading={cancelLoading}
+      />
     </div>
   );
 }

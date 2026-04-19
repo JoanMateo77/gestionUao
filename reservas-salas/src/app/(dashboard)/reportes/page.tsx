@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { BarChart3, Clock, User, Search } from 'lucide-react';
+import { EmptyState } from '@/components/ui';
 
 type TipoReporte = 'reservas' | 'horas' | 'usuario';
 
@@ -105,10 +106,11 @@ export default function ReportesPage() {
 
       {/* Resultados */}
       {datos !== null && datos.length === 0 && (
-        <div className="empty-state">
-          <BarChart3 size={40} />
-          <p style={{ marginTop: '8px' }}>No hay datos disponibles para el rango seleccionado</p>
-        </div>
+        <EmptyState
+          icon={<BarChart3 size={40} />}
+          title="No hay datos disponibles"
+          description="No se encontraron reservas para el rango de fechas seleccionado."
+        />
       )}
 
       {datos !== null && datos.length > 0 && tipo === 'reservas' && (

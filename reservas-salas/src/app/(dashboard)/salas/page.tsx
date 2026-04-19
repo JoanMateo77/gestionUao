@@ -8,6 +8,7 @@ import {
   Users, MapPin, DoorOpen,
 } from 'lucide-react';
 import Link from 'next/link';
+import { SkeletonCard, EmptyState } from '@/components/ui';
 
 interface SalaRecurso {
   id: number;
@@ -131,9 +132,15 @@ export default function SalasPage() {
 
       {/* Grid */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><div className="spinner" /></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
+        </div>
       ) : filtered.length === 0 ? (
-        <div className="empty-state"><DoorOpen size={40} /><p style={{ marginTop: '8px' }}>No se encontraron salas</p></div>
+        <EmptyState
+          icon={<DoorOpen size={40} />}
+          title="No se encontraron salas"
+          description={search ? 'Prueba con otro término de búsqueda.' : 'Aún no hay salas registradas.'}
+        />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sala) => (
@@ -193,11 +200,15 @@ export default function SalasPage() {
                       <Edit3 size={13} /> Editar
                     </button>
                     <button className={sala.habilitada ? 'btn-danger' : 'btn-secondary'}
+                      title={sala.habilitada ? 'Deshabilitar sala' : 'Habilitar sala'}
+                      aria-label={sala.habilitada ? 'Deshabilitar sala' : 'Habilitar sala'}
                       style={{ padding: '8px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                       onClick={() => handleToggleStatus(sala)}>
                       {sala.habilitada ? <><PowerOff size={13} /></> : <><Power size={13} /></>}
                     </button>
                     <Link href={`/salas/${sala.id}/recursos`} className="btn-secondary"
+                      title="Gestionar recursos"
+                      aria-label="Gestionar recursos de la sala"
                       style={{ padding: '8px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', color: 'var(--text-primary)' }}>
                       <Cpu size={13} />
                     </Link>
@@ -227,7 +238,7 @@ export default function SalasPage() {
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>{editingSala ? 'Editar Sala' : 'Nueva Sala'}</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
+              <button type="button" onClick={() => setShowModal(false)} title="Cerrar" aria-label="Cerrar" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
             </div>
             <form onSubmit={handleSubmit}>
               <div style={{ marginBottom: '16px' }}>
