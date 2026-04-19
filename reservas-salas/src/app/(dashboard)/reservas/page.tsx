@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import {
   Plus, CalendarDays, XCircle, Clock, MapPin, User, Edit3, Filter, Users,
 } from 'lucide-react';
-import Link from 'next/link';
 import {
   ConfirmDialog, SkeletonCard, EmptyState, Button, Input, Modal, Card,
   ResourceChip, AvailabilityTimeline,
@@ -284,10 +283,6 @@ export default function ReservasPage() {
               )}
             </Button>
           )}
-          <Link href="/salas" className="btn-secondary"
-            style={{ textDecoration: 'none', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            Explorar Salas
-          </Link>
           <Button
             variant="primary"
             onClick={() => { setForm({ salaId: 0, fecha: '', horaInicio: '', horaFin: '', motivo: '' }); setShowModal(true); }}
