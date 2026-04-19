@@ -3,6 +3,9 @@
 import { useState } from 'react';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { ResourceChip } from './ResourceChip';
+import { EDIFICIOS_UAO } from '@/lib/edificios';
+
+export { EDIFICIOS_UAO };
 
 export type Recurso = {
   id: number;
@@ -18,12 +21,6 @@ export type Filters = {
   capacidadMax: string;
   recursos: number[];
 };
-
-export const EDIFICIOS_UAO = [
-  'Aulas 1', 'Aulas 2', 'Aulas 3', 'Aulas 4',
-  'Torreón 0', 'Torreón 1', 'Torreón 2', 'Torreón 3', 'Torreón 4',
-  'CRAI', 'Ala Sur', 'Edificio Central', 'Bienestar',
-];
 
 interface Props {
   recursos: Recurso[];

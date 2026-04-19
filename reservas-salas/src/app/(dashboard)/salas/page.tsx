@@ -10,10 +10,15 @@ import {
 import Link from 'next/link';
 import {
   SkeletonCard, EmptyState, Button, Input, Modal, Card,
-  FilterBar, ResourceChip, EDIFICIOS_UAO,
+  FilterBar, ResourceChip,
   type RecursoUI, type RoomFilters,
 } from '@/components/ui';
 import { useDebounce } from '@/lib/hooks/useDebounce';
+import {
+  EDIFICIOS, getEdificio, pisoDeTorreon,
+  componerNombre as componerNombreSala,
+  componerUbicacion as componerUbicacionSala,
+} from '@/lib/edificios';
 
 interface SalaRecurso {
   id: number;
@@ -31,24 +36,6 @@ interface Sala {
 
 const FILTROS_INICIALES: RoomFilters = { q: '', edificio: '', capacidadMin: '', capacidadMax: '', recursos: [] };
 
-/**
- * Compone nombre y ubicación siguiendo la nomenclatura UAO. Un "Edificio"
- * (Aulas, Torreón, CRAI, Ala Sur, Central, Bienestar) contiene varios salones
- * reservables; la sala creada es SIEMPRE un salón específico dentro de él.
- */
-function componerNombre(edificio: string, piso: string, numero: string): string {
-  const nn = numero.padStart(2, '0');
-  if (edificio.startsWith('Aulas'))   return `${edificio} - A${piso}${nn}`;
-  if (edificio.startsWith('Torreón')) return `${edificio}-${piso}${nn}`;
-  if (edificio === 'CRAI')            return `CRAI P${piso}-${nn}`;
-  if (edificio === 'Ala Sur')         return `Ala Sur P${piso}-${nn}`;
-  if (edificio === 'Edificio Central') return `Central P${piso}-${nn}`;
-  return `${edificio} P${piso}-${nn}`;
-}
-
-function componerUbicacion(edificio: string, piso: string, numero: string): string {
-  return `${edificio}, Piso ${piso}, Salón ${numero.padStart(2, '0')}`;
-}
 
 export default function SalasPage() {
   const { data: session } = useSession();
@@ -62,7 +49,7 @@ export default function SalasPage() {
   const [editingSala, setEditingSala] = useState<Sala | null>(null);
   const [form, setForm] = useState({
     nombre: '', ubicacion: '', capacidad: 10,
-    edificio: '', piso: '', numero: '',
+    edificioId: '', piso: '', numero: '', descripcion: '',
   });
   const [saving, setSaving] = useState(false);
 
@@ -98,7 +85,7 @@ export default function SalasPage() {
 
   const handleCreate = () => {
     setEditingSala(null);
-    setForm({ nombre: '', ubicacion: '', capacidad: 10, edificio: '', piso: '', numero: '' });
+    setForm({ nombre: '', ubicacion: '', capacidad: 10, edificioId: '', piso: '', numero: '', descripcion: '' });
     setShowModal(true);
   };
   const handleEdit = (sala: Sala) => {
@@ -107,7 +94,7 @@ export default function SalasPage() {
       nombre: sala.nombre,
       ubicacion: sala.ubicacion || '',
       capacidad: sala.capacidad,
-      edificio: '', piso: '', numero: '',
+      edificioId: '', piso: '', numero: '', descripcion: '',
     });
     setShowModal(true);
   };
@@ -115,20 +102,27 @@ export default function SalasPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // En creación, el nombre y ubicación se derivan de edificio+piso+salón
     let payload: { nombre: string; ubicacion: string; capacidad: number };
     if (editingSala) {
       payload = { nombre: form.nombre, ubicacion: form.ubicacion, capacidad: form.capacidad };
     } else {
-      if (!form.edificio || !form.piso || !form.numero) {
-        toast.error('Selecciona edificio, piso y número de salón');
+      const nombre = componerNombreSala({
+        edificioId: form.edificioId,
+        piso: form.piso,
+        numero: form.numero,
+        descripcion: form.descripcion,
+      });
+      const ubicacion = componerUbicacionSala({
+        edificioId: form.edificioId,
+        piso: form.piso,
+        numero: form.numero,
+        descripcion: form.descripcion,
+      });
+      if (!nombre || !ubicacion) {
+        toast.error('Completa todos los campos del edificio');
         return;
       }
-      payload = {
-        nombre: componerNombre(form.edificio, form.piso, form.numero),
-        ubicacion: componerUbicacion(form.edificio, form.piso, form.numero),
-        capacidad: form.capacidad,
-      };
+      payload = { nombre, ubicacion, capacidad: form.capacidad };
     }
 
     setSaving(true);
@@ -162,65 +156,117 @@ export default function SalasPage() {
 
   const disponibles = useMemo(() => salas.filter((s) => s.habilitada).length, [salas]);
 
-  const puedeGuardarCreacion = !!(form.edificio && form.piso && form.numero && form.capacidad >= 2);
-  const nombrePreview = puedeGuardarCreacion ? componerNombre(form.edificio, form.piso, form.numero) : '';
-  const ubicacionPreview = puedeGuardarCreacion ? componerUbicacion(form.edificio, form.piso, form.numero) : '';
+  const edificioSel = form.edificioId ? getEdificio(form.edificioId) : undefined;
+  const nombrePreview = componerNombreSala({
+    edificioId: form.edificioId, piso: form.piso, numero: form.numero, descripcion: form.descripcion,
+  });
+  const ubicacionPreview = componerUbicacionSala({
+    edificioId: form.edificioId, piso: form.piso, numero: form.numero, descripcion: form.descripcion,
+  });
+  const puedeGuardarCreacion = !!(nombrePreview && ubicacionPreview && form.capacidad >= 2);
 
   function renderFormCrear() {
     return (
       <form onSubmit={handleSubmit}>
         <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
-          Registra un <strong>salón específico</strong> dentro de un edificio del Campus Valle del Lilí.
-          El nombre y la ubicación se generan automáticamente siguiendo la nomenclatura UAO.
+          Selecciona el edificio. Los campos se ajustan a su jerarquía real (las Aulas tienen salones numerados, los Torreones son únicos por piso, los demás edificios tienen salas con nombre propio).
         </p>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 80px 90px', gap: '10px', marginBottom: '14px' }}>
-          <div>
-            <label className="label">Edificio *</label>
-            <select
-              className="input-field"
-              value={form.edificio}
-              onChange={(e) => setForm({ ...form, edificio: e.target.value })}
-              required
-            >
-              <option value="">Seleccione</option>
-              {EDIFICIOS_UAO.map((ed) => <option key={ed} value={ed}>{ed}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="label">Piso *</label>
-            <input
-              className="input-field"
-              type="number"
-              min={0}
-              max={10}
-              placeholder="2"
-              value={form.piso}
-              onChange={(e) => setForm({ ...form, piso: e.target.value })}
-              required
-            />
-          </div>
-          <div>
-            <label className="label">Salón *</label>
-            <input
-              className="input-field"
-              type="text"
-              placeholder="05"
-              maxLength={3}
-              value={form.numero}
-              onChange={(e) => setForm({ ...form, numero: e.target.value.replace(/\D/g, '') })}
-              required
-            />
-          </div>
+        <div style={{ marginBottom: '12px' }}>
+          <label className="label">Edificio *</label>
+          <select
+            className="input-field"
+            value={form.edificioId}
+            onChange={(e) => setForm({ ...form, edificioId: e.target.value, piso: '', numero: '', descripcion: '' })}
+            required
+          >
+            <option value="">Seleccione un edificio</option>
+            <optgroup label="Edificios de aulas (múltiples salones por piso)">
+              {EDIFICIOS.filter((e) => e.tipo === 'AULAS').map((e) => (
+                <option key={e.id} value={e.id}>{e.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Torreones (un espacio por piso del campus)">
+              {EDIFICIOS.filter((e) => e.tipo === 'TORREON').map((e) => (
+                <option key={e.id} value={e.id}>{e.label}</option>
+              ))}
+            </optgroup>
+            <optgroup label="Otros (biblioteca, juntas, auditorios)">
+              {EDIFICIOS.filter((e) => !['AULAS', 'TORREON'].includes(e.tipo)).map((e) => (
+                <option key={e.id} value={e.id}>{e.label}</option>
+              ))}
+            </optgroup>
+          </select>
         </div>
+
+        {/* Branching por tipo de edificio */}
+        {edificioSel?.tipo === 'AULAS' && (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '12px' }}>
+            <div>
+              <label className="label">Piso *</label>
+              <input
+                className="input-field" type="number" min={1} max={4}
+                placeholder="2" value={form.piso}
+                onChange={(e) => setForm({ ...form, piso: e.target.value })}
+                required
+              />
+            </div>
+            <div>
+              <label className="label">Salón *</label>
+              <input
+                className="input-field" type="text" maxLength={2}
+                placeholder="05" value={form.numero}
+                onChange={(e) => setForm({ ...form, numero: e.target.value.replace(/\D/g, '') })}
+                required
+              />
+              <p className="helper-text">Ej: 01, 05, 12</p>
+            </div>
+          </div>
+        )}
+
+        {edificioSel?.tipo === 'TORREON' && (
+          <div
+            style={{
+              padding: '10px 12px', borderRadius: '8px', marginBottom: '12px',
+              background: 'var(--info-bg)', color: 'var(--info)', fontSize: '0.75rem',
+            }}
+          >
+            El Torreón {pisoDeTorreon(edificioSel.id)} es un salón único en el piso {pisoDeTorreon(edificioSel.id)} del campus. No requiere número de salón adicional.
+          </div>
+        )}
+
+        {edificioSel && ['CRAI', 'ALA_SUR', 'CENTRAL', 'BIENESTAR'].includes(edificioSel.tipo) && (
+          <>
+            <div style={{ marginBottom: '12px' }}>
+              <label className="label">Piso *</label>
+              <input
+                className="input-field" type="number" min={1} max={4}
+                placeholder="2" value={form.piso}
+                onChange={(e) => setForm({ ...form, piso: e.target.value })}
+                required
+              />
+            </div>
+            <Input
+              label="Nombre descriptivo del espacio"
+              placeholder={
+                edificioSel.tipo === 'CRAI' ? 'Ej: Sala de Estudio 1, Sala CELEE' :
+                edificioSel.tipo === 'ALA_SUR' ? 'Ej: Sala de Juntas Ingeniería' :
+                edificioSel.tipo === 'CENTRAL' ? 'Ej: Auditorio Menor' :
+                'Ej: Salón de Danza'
+              }
+              value={form.descripcion}
+              onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
+              required
+              wrapperClassName="mb-3"
+              helperText="Este nombre identifica el espacio dentro del edificio."
+            />
+          </>
+        )}
 
         <div style={{ marginBottom: '14px' }}>
           <label className="label">Capacidad (personas) *</label>
           <input
-            className="input-field"
-            type="number"
-            min={2}
-            max={100}
+            className="input-field" type="number" min={2} max={100}
             value={form.capacidad}
             onChange={(e) => setForm({ ...form, capacidad: Number(e.target.value) })}
             required
@@ -228,7 +274,7 @@ export default function SalasPage() {
           <p className="helper-text">Entre 2 y 100 personas</p>
         </div>
 
-        {/* Preview de lo que se creará */}
+        {/* Preview */}
         <div
           style={{
             padding: '12px 14px', borderRadius: '10px', marginBottom: '16px',
@@ -240,7 +286,7 @@ export default function SalasPage() {
           <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginBottom: '4px', fontWeight: 600, letterSpacing: '0.04em' }}>
             SE CREARÁ
           </div>
-          {puedeGuardarCreacion ? (
+          {puedeGuardarCreacion && nombrePreview && ubicacionPreview ? (
             <>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{nombrePreview}</div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{ubicacionPreview}</div>
