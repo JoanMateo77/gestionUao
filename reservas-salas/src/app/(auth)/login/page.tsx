@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { BookOpen, AlertCircle } from 'lucide-react';
+import { Input, Card } from '@/components/ui';
 
 interface Facultad {
   id: number;
@@ -140,7 +141,7 @@ export default function LoginPage() {
       </div>
 
       {/* Card */}
-      <div className="card fade-in" style={{ width: '100%', maxWidth: '440px', padding: '32px' }}>
+      <Card className="fade-in w-full" padding="none" hoverable={false} style={{ maxWidth: '440px', padding: '32px' }}>
         <h2 style={{ fontWeight: 700, fontSize: '1.15rem', marginBottom: '4px' }}>Bienvenido</h2>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '20px' }}>
           Inicia sesión o crea una cuenta para reservar salas de estudio
@@ -182,18 +183,26 @@ export default function LoginPage() {
         {/* LOGIN FORM */}
         {tab === 'login' && (
           <form onSubmit={handleLogin}>
-            <div style={{ marginBottom: '16px' }}>
-              <label className="label">Correo Electrónico</label>
-              <input id="login-correo" className="input-field" type="email"
-                placeholder="correo@ejemplo.com" value={correo}
-                onChange={(e) => setCorreo(e.target.value)} required />
-            </div>
-            <div style={{ marginBottom: '24px' }}>
-              <label className="label">Contraseña</label>
-              <input id="login-password" className="input-field" type="password"
-                placeholder="••••••••" value={password}
-                onChange={(e) => setPassword(e.target.value)} required />
-            </div>
+            <Input
+              id="login-correo"
+              label="Correo Electrónico"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              value={correo}
+              onChange={(e) => setCorreo(e.target.value)}
+              required
+              wrapperClassName="mb-4"
+            />
+            <Input
+              id="login-password"
+              label="Contraseña"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              wrapperClassName="mb-6"
+            />
             <button id="login-submit" type="submit" className="btn-accent" disabled={loading}
               style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' }}>
               {loading ? 'Ingresando...' : 'Iniciar Sesión'}
@@ -204,18 +213,26 @@ export default function LoginPage() {
         {/* REGISTER FORM */}
         {tab === 'register' && (
           <form onSubmit={handleRegister}>
-            <div style={{ marginBottom: '14px' }}>
-              <label className="label">Nombre Completo</label>
-              <input id="register-nombre" className="input-field" type="text"
-                placeholder="Juan Pérez" value={regForm.nombre}
-                onChange={(e) => setRegForm({ ...regForm, nombre: e.target.value })} required />
-            </div>
-            <div style={{ marginBottom: '14px' }}>
-              <label className="label">Correo Electrónico</label>
-              <input id="register-correo" className="input-field" type="email"
-                placeholder="correo@ejemplo.com" value={regForm.correo}
-                onChange={(e) => setRegForm({ ...regForm, correo: e.target.value })} required />
-            </div>
+            <Input
+              id="register-nombre"
+              label="Nombre Completo"
+              type="text"
+              placeholder="Juan Pérez"
+              value={regForm.nombre}
+              onChange={(e) => setRegForm({ ...regForm, nombre: e.target.value })}
+              required
+              wrapperClassName="mb-3"
+            />
+            <Input
+              id="register-correo"
+              label="Correo Electrónico"
+              type="email"
+              placeholder="correo@ejemplo.com"
+              value={regForm.correo}
+              onChange={(e) => setRegForm({ ...regForm, correo: e.target.value })}
+              required
+              wrapperClassName="mb-3"
+            />
             <div style={{ marginBottom: '14px' }}>
               <label className="label">Facultad</label>
               <select id="register-facultad" className="input-field" value={regForm.facultadId}
@@ -226,26 +243,36 @@ export default function LoginPage() {
                 ))}
               </select>
             </div>
-            <div style={{ marginBottom: '14px' }}>
-              <label className="label">Contraseña</label>
-              <input id="register-password" className="input-field" type="password"
-                placeholder="••••••••" value={regForm.password}
-                onChange={(e) => setRegForm({ ...regForm, password: e.target.value })} required minLength={8} />
-              <p className="helper-text">Mínimo 8 caracteres y al menos un carácter especial (!@#$%...)</p>
-            </div>
-            <div style={{ marginBottom: '24px' }}>
-              <label className="label">Confirmar Contraseña</label>
-              <input id="register-confirm" className="input-field" type="password"
-                placeholder="••••••••" value={regForm.confirmPassword}
-                onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })} required minLength={8} />
-            </div>
+            <Input
+              id="register-password"
+              label="Contraseña"
+              type="password"
+              placeholder="••••••••"
+              value={regForm.password}
+              onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
+              required
+              minLength={8}
+              helperText="Mínimo 8 caracteres y al menos un carácter especial (!@#$%...)"
+              wrapperClassName="mb-3"
+            />
+            <Input
+              id="register-confirm"
+              label="Confirmar Contraseña"
+              type="password"
+              placeholder="••••••••"
+              value={regForm.confirmPassword}
+              onChange={(e) => setRegForm({ ...regForm, confirmPassword: e.target.value })}
+              required
+              minLength={8}
+              wrapperClassName="mb-6"
+            />
             <button id="register-submit" type="submit" className="btn-accent" disabled={loading}
               style={{ width: '100%', padding: '13px', background: 'linear-gradient(135deg, #ef4444 0%, #b91c1c 100%)' }}>
               {loading ? 'Registrando...' : 'Crear Cuenta'}
             </button>
           </form>
         )}
-      </div>
+      </Card>
 
       {/* Footer */}
       <p style={{ marginTop: '24px', fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center' }}>

@@ -4,11 +4,11 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
-  Plus, Edit3, Power, PowerOff, Cpu, Search, X,
+  Plus, Edit3, Power, PowerOff, Cpu, Search,
   Users, MapPin, DoorOpen,
 } from 'lucide-react';
 import Link from 'next/link';
-import { SkeletonCard, EmptyState } from '@/components/ui';
+import { SkeletonCard, EmptyState, Button, Input, Modal, Card } from '@/components/ui';
 import { useDebounce } from '@/lib/hooks/useDebounce';
 
 interface SalaRecurso {
@@ -99,10 +99,9 @@ export default function SalasPage() {
           </p>
         </div>
         {isSecretaria && (
-          <button className="btn-primary" onClick={handleCreate}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Plus size={16} /> Nueva Sala
-          </button>
+          <Button variant="primary" onClick={handleCreate} leftIcon={<Plus size={16} />}>
+            Nueva Sala
+          </Button>
         )}
       </div>
 
@@ -125,10 +124,13 @@ export default function SalasPage() {
       {/* Search */}
       <div style={{ display: 'flex', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
         <div style={{ position: 'relative', flex: 1, maxWidth: '360px' }}>
-          <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-          <input className="input-field" style={{ paddingLeft: '38px' }}
-            placeholder="Buscar por nombre o edificio..." value={search}
-            onChange={(e) => setSearch(e.target.value)} />
+          <Search size={15} style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', zIndex: 1 }} />
+          <Input
+            className="pl-10"
+            placeholder="Buscar por nombre o edificio..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
       </div>
 
@@ -146,7 +148,7 @@ export default function SalasPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sala) => (
-            <div key={sala.id} className="card" style={{ padding: '20px' }}>
+            <Card key={sala.id} padding="lg">
               {/* Header */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 <h3 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{sala.nombre}</h3>
@@ -197,17 +199,24 @@ export default function SalasPage() {
               <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
                 {isSecretaria ? (
                   <>
-                    <button className="btn-secondary" onClick={() => handleEdit(sala)}
-                      style={{ flex: 1, padding: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                      <Edit3 size={13} /> Editar
-                    </button>
-                    <button className={sala.habilitada ? 'btn-danger' : 'btn-secondary'}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleEdit(sala)}
+                      leftIcon={<Edit3 size={13} />}
+                      fullWidth
+                    >
+                      Editar
+                    </Button>
+                    <Button
+                      variant={sala.habilitada ? 'danger' : 'secondary'}
+                      size="sm"
                       title={sala.habilitada ? 'Deshabilitar sala' : 'Habilitar sala'}
                       aria-label={sala.habilitada ? 'Deshabilitar sala' : 'Habilitar sala'}
-                      style={{ padding: '8px 12px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '4px' }}
-                      onClick={() => handleToggleStatus(sala)}>
-                      {sala.habilitada ? <><PowerOff size={13} /></> : <><Power size={13} /></>}
-                    </button>
+                      onClick={() => handleToggleStatus(sala)}
+                    >
+                      {sala.habilitada ? <PowerOff size={13} /> : <Power size={13} />}
+                    </Button>
                     <Link href={`/salas/${sala.id}/recursos`} className="btn-secondary"
                       title="Gestionar recursos"
                       aria-label="Gestionar recursos de la sala"
@@ -217,9 +226,9 @@ export default function SalasPage() {
                   </>
                 ) : (
                   <>
-                    <button className="btn-secondary" style={{ flex: 1, padding: '8px', fontSize: '0.8rem' }}>
+                    <Button variant="secondary" size="sm" fullWidth>
                       👁 Ver Detalles
-                    </button>
+                    </Button>
                     {sala.habilitada && (
                       <Link href={`/reservas?salaId=${sala.id}`} className="btn-primary"
                         style={{ padding: '8px 16px', fontSize: '0.8rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -229,40 +238,49 @@ export default function SalasPage() {
                   </>
                 )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
 
       {/* Modal */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>{editingSala ? 'Editar Sala' : 'Nueva Sala'}</h2>
-              <button type="button" onClick={() => setShowModal(false)} title="Cerrar" aria-label="Cerrar" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '16px' }}>
-                <label className="label">Nombre de la sala</label>
-                <input className="input-field" placeholder="Ej: Sala A-101" value={form.nombre} onChange={(e) => setForm({ ...form, nombre: e.target.value })} required />
-              </div>
-              <div style={{ marginBottom: '16px' }}>
-                <label className="label">Ubicación</label>
-                <input className="input-field" placeholder="Ej: Edificio A, Piso 1" value={form.ubicacion} onChange={(e) => setForm({ ...form, ubicacion: e.target.value })} />
-              </div>
-              <div style={{ marginBottom: '24px' }}>
-                <label className="label">Capacidad (personas)</label>
-                <input className="input-field" type="number" min={2} max={100} value={form.capacidad} onChange={(e) => setForm({ ...form, capacidad: Number(e.target.value) })} required />
-              </div>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={saving} style={{ flex: 1 }}>{saving ? 'Guardando...' : editingSala ? 'Actualizar' : 'Crear Sala'}</button>
-              </div>
-            </form>
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title={editingSala ? 'Editar Sala' : 'Nueva Sala'}
+      >
+        <form onSubmit={handleSubmit}>
+          <Input
+            label="Nombre de la sala"
+            placeholder="Ej: Sala A-101"
+            value={form.nombre}
+            onChange={(e) => setForm({ ...form, nombre: e.target.value })}
+            required
+            wrapperClassName="mb-4"
+          />
+          <Input
+            label="Ubicación"
+            placeholder="Ej: Edificio A, Piso 1"
+            value={form.ubicacion}
+            onChange={(e) => setForm({ ...form, ubicacion: e.target.value })}
+            wrapperClassName="mb-4"
+          />
+          <Input
+            label="Capacidad (personas)"
+            type="number"
+            min={2}
+            max={100}
+            value={form.capacidad}
+            onChange={(e) => setForm({ ...form, capacidad: Number(e.target.value) })}
+            required
+            wrapperClassName="mb-6"
+          />
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button type="button" variant="secondary" onClick={() => setShowModal(false)} fullWidth>Cancelar</Button>
+            <Button type="submit" variant="primary" disabled={saving} fullWidth>{saving ? 'Guardando...' : editingSala ? 'Actualizar' : 'Crear Sala'}</Button>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { Plus, Trash2, Cpu, ArrowLeft, Package } from 'lucide-react';
 import Link from 'next/link';
-import { ConfirmDialog, EmptyState, Breadcrumbs } from '@/components/ui';
+import { ConfirmDialog, EmptyState, Breadcrumbs, Button, Card } from '@/components/ui';
 
 interface Recurso { id: number; nombre: string; descripcion: string | null; }
 interface SalaRecurso { id: number; recurso: Recurso; }
@@ -96,7 +96,7 @@ export default function RecursosPage() {
 
       {/* Add */}
       {available.length > 0 && (
-        <div className="card" style={{ padding: '20px', marginBottom: '24px' }}>
+        <Card padding="lg" className="mb-6">
           <h3 style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Plus size={16} /> Agregar Recurso
           </h3>
@@ -106,12 +106,16 @@ export default function RecursosPage() {
               <option value={0}>Seleccione un recurso...</option>
               {available.map((r) => (<option key={r.id} value={r.id}>{r.nombre} — {r.descripcion || ''}</option>))}
             </select>
-            <button className="btn-primary" onClick={handleAdd} disabled={!selectedRecurso || adding}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Plus size={16} /> {adding ? 'Agregando...' : 'Agregar'}
-            </button>
+            <Button
+              variant="primary"
+              onClick={handleAdd}
+              disabled={!selectedRecurso || adding}
+              leftIcon={<Plus size={16} />}
+            >
+              {adding ? 'Agregando...' : 'Agregar'}
+            </Button>
           </div>
-        </div>
+        </Card>
       )}
 
       {/* Assigned */}
@@ -124,7 +128,7 @@ export default function RecursosPage() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '12px' }}>
           {assigned.map((sr) => (
-            <div key={sr.id} className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Card key={sr.id} className="flex items-center justify-between" padding="md">
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: 'var(--bg-input)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <Cpu size={18} color="var(--text-muted)" />
@@ -134,16 +138,16 @@ export default function RecursosPage() {
                   {sr.recurso.descripcion && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{sr.recurso.descripcion}</div>}
                 </div>
               </div>
-              <button
-                className="btn-danger"
+              <Button
+                variant="danger"
+                size="sm"
                 onClick={() => handleRemove(sr.id, sr.recurso.nombre)}
                 title={`Retirar ${sr.recurso.nombre}`}
                 aria-label={`Retirar ${sr.recurso.nombre} de la sala`}
-                style={{ padding: '8px' }}
               >
                 <Trash2 size={14} />
-              </button>
-            </div>
+              </Button>
+            </Card>
           ))}
         </div>
       )}

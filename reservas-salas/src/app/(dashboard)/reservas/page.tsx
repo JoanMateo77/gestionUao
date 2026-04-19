@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
-  Plus, CalendarDays, XCircle, Clock, MapPin, User, X, Edit3, Filter,
+  Plus, CalendarDays, XCircle, Clock, MapPin, User, Edit3, Filter,
 } from 'lucide-react';
 import Link from 'next/link';
-import { ConfirmDialog, SkeletonCard, EmptyState } from '@/components/ui';
+import { ConfirmDialog, SkeletonCard, EmptyState, Button, Input, Modal, Card } from '@/components/ui';
 
 interface Sala {
   id: number;
@@ -205,9 +205,13 @@ export default function ReservasPage() {
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {isSecretaria && (
-            <button className="btn-secondary" onClick={() => setShowFilters(!showFilters)}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'relative' }}>
-              <Filter size={15} /> Filtros
+            <Button
+              variant="secondary"
+              onClick={() => setShowFilters(!showFilters)}
+              leftIcon={<Filter size={15} />}
+              className="relative"
+            >
+              Filtros
               {hasActiveFilters && (
                 <span style={{
                   position: 'absolute', top: '-6px', right: '-6px',
@@ -216,22 +220,25 @@ export default function ReservasPage() {
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>!</span>
               )}
-            </button>
+            </Button>
           )}
           <Link href="/salas" className="btn-secondary"
             style={{ textDecoration: 'none', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
             Explorar Salas
           </Link>
-          <button className="btn-primary" onClick={() => { setForm({ salaId: 0, fecha: '', horaInicio: '', horaFin: '', motivo: '' }); setShowModal(true); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Plus size={16} /> Nueva Reserva
-          </button>
+          <Button
+            variant="primary"
+            onClick={() => { setForm({ salaId: 0, fecha: '', horaInicio: '', horaFin: '', motivo: '' }); setShowModal(true); }}
+            leftIcon={<Plus size={16} />}
+          >
+            Nueva Reserva
+          </Button>
         </div>
       </div>
 
       {/* Panel de filtros SECRETARIA (HU-13) */}
       {isSecretaria && showFilters && (
-        <div className="card" style={{ padding: '16px', marginBottom: '20px' }}>
+        <Card padding="md" className="mb-5">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'end' }}>
             <div>
               <label className="label" style={{ fontSize: '0.75rem' }}>Sala</label>
@@ -242,23 +249,25 @@ export default function ReservasPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="label" style={{ fontSize: '0.75rem' }}>Desde</label>
-              <input className="input-field" type="date" value={filtroFechaInicio}
-                onChange={(e) => { setFiltroFechaInicio(e.target.value); setPage(1); }} />
-            </div>
-            <div>
-              <label className="label" style={{ fontSize: '0.75rem' }}>Hasta</label>
-              <input className="input-field" type="date" value={filtroFechaFin}
-                onChange={(e) => { setFiltroFechaFin(e.target.value); setPage(1); }} />
-            </div>
+            <Input
+              label="Desde"
+              type="date"
+              value={filtroFechaInicio}
+              onChange={(e) => { setFiltroFechaInicio(e.target.value); setPage(1); }}
+            />
+            <Input
+              label="Hasta"
+              type="date"
+              value={filtroFechaFin}
+              onChange={(e) => { setFiltroFechaFin(e.target.value); setPage(1); }}
+            />
             {hasActiveFilters && (
-              <button className="btn-secondary" onClick={clearFilters} style={{ fontSize: '0.8rem' }}>
+              <Button variant="secondary" onClick={clearFilters}>
                 Limpiar filtros
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '20px' }}>
@@ -288,17 +297,14 @@ export default function ReservasPage() {
           { value: 'CONFIRMADA', label: 'Activas' },
           { value: 'CANCELADA', label: 'Historial' },
         ].map((f) => (
-          <button key={f.value}
-            className={`btn-secondary ${filter === f.value ? 'active' : ''}`}
-            style={{
-              padding: '8px 16px', fontSize: '0.8rem',
-              background: filter === f.value ? 'var(--primary)' : 'transparent',
-              color: filter === f.value ? '#fff' : 'var(--text-secondary)',
-              borderColor: filter === f.value ? 'var(--primary)' : 'var(--border)',
-            }}
-            onClick={() => { setFilter(f.value); setPage(1); }}>
+          <Button
+            key={f.value}
+            variant={filter === f.value ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => { setFilter(f.value); setPage(1); }}
+          >
             {f.label}
-          </button>
+          </Button>
         ))}
       </div>
 
@@ -313,20 +319,19 @@ export default function ReservasPage() {
           title="No se encontraron reservas"
           description="Crea una nueva reserva para comenzar a gestionar tus salas."
           action={
-            <button
-              type="button"
-              className="btn-primary"
+            <Button
+              variant="primary"
               onClick={() => setShowModal(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+              leftIcon={<Plus size={16} />}
             >
-              <Plus size={16} /> Crear reserva
-            </button>
+              Crear reserva
+            </Button>
           }
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {reservas.map((r) => (
-            <div key={r.id} className="card" style={{ padding: '20px' }}>
+            <Card key={r.id} padding="lg">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 <div>
                   <h3 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{r.sala.nombre}</h3>
@@ -361,20 +366,30 @@ export default function ReservasPage() {
 
               <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
                 {r.estado === 'CONFIRMADA' && isSecretaria && (
-                  <button className="btn-secondary" onClick={() => openAdjust(r)}
-                    style={{ flex: 1, padding: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <Edit3 size={13} /> Ajustar
-                  </button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => openAdjust(r)}
+                    leftIcon={<Edit3 size={13} />}
+                    fullWidth
+                  >
+                    Ajustar
+                  </Button>
                 )}
                 {r.estado === 'CONFIRMADA' &&
                   (isSecretaria || r.usuario.id === session?.user?.id) && (
-                    <button className="btn-danger" onClick={() => handleCancel(r.id)}
-                      style={{ flex: isSecretaria ? 'unset' : 1, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                      <XCircle size={13} /> Cancelar
-                    </button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleCancel(r.id)}
+                      leftIcon={<XCircle size={13} />}
+                      fullWidth={!isSecretaria}
+                    >
+                      Cancelar
+                    </Button>
                   )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -382,147 +397,163 @@ export default function ReservasPage() {
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-          <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>Anterior</button>
+          <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
           <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Página {data.page} de {data.totalPages}</span>
-          <button className="btn-secondary" disabled={page >= data.totalPages} onClick={() => setPage(page + 1)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>Siguiente</button>
+          <Button variant="secondary" size="sm" disabled={page >= data.totalPages} onClick={() => setPage(page + 1)}>Siguiente</Button>
         </div>
       )}
 
       {/* ─── Modal: Crear Reserva ─── */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>Crear Reserva</h2>
-              <button type="button" onClick={() => setShowModal(false)} title="Cerrar" aria-label="Cerrar" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '20px' }}>
-              Reserva de sala de estudio
-            </p>
-
-            <div style={{
-              padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
-              background: 'var(--info-bg)', border: '1px solid rgba(37,99,235,0.15)',
-              fontSize: '0.75rem', color: 'var(--info)',
-            }}>
-              <strong>📋 Política de Reservas</strong>
-              <ul style={{ margin: '6px 0 0 16px', lineHeight: 1.7 }}>
-                <li>Horario: 7:00 AM — 9:30 PM</li>
-                <li>No se permiten reservas superpuestas</li>
-                <li>No se permiten reservas en fechas pasadas</li>
-                <li>No se permiten reservas los domingos</li>
-              </ul>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Sala *</label>
-                <select className="input-field" value={form.salaId}
-                  onChange={(e) => setForm({ ...form, salaId: Number(e.target.value) })} required>
-                  <option value={0}>Seleccione una sala</option>
-                  {salas.map((s) => (
-                    <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Fecha *</label>
-                <input className="input-field" type="date" value={form.fecha}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setForm({ ...form, fecha: e.target.value })} required />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-                <div>
-                  <label className="label">Hora de Inicio *</label>
-                  <input className="input-field" type="time" value={form.horaInicio}
-                    min="07:00" max="21:00"
-                    onChange={(e) => setForm({ ...form, horaInicio: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="label">Hora de Fin *</label>
-                  <input className="input-field" type="time" value={form.horaFin}
-                    min="07:30" max="21:30"
-                    onChange={(e) => setForm({ ...form, horaFin: e.target.value })} required />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label className="label">Motivo</label>
-                <input className="input-field" placeholder="Describe brevemente el motivo de tu reserva"
-                  value={form.motivo}
-                  onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={saving} style={{ flex: 1 }}>{saving ? 'Creando...' : 'Confirmar Reserva'}</button>
-              </div>
-            </form>
-          </div>
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title="Crear Reserva"
+        description="Reserva de sala de estudio"
+        size="lg"
+      >
+        <div style={{
+          padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
+          background: 'var(--info-bg)', border: '1px solid rgba(37,99,235,0.15)',
+          fontSize: '0.75rem', color: 'var(--info)',
+        }}>
+          <strong>📋 Política de Reservas</strong>
+          <ul style={{ margin: '6px 0 0 16px', lineHeight: 1.7 }}>
+            <li>Horario: 7:00 AM — 9:30 PM</li>
+            <li>No se permiten reservas superpuestas</li>
+            <li>No se permiten reservas en fechas pasadas</li>
+            <li>No se permiten reservas los domingos</li>
+          </ul>
         </div>
-      )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '14px' }}>
+            <label className="label">Sala *</label>
+            <select className="input-field" value={form.salaId}
+              onChange={(e) => setForm({ ...form, salaId: Number(e.target.value) })} required>
+              <option value={0}>Seleccione una sala</option>
+              {salas.map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
+              ))}
+            </select>
+          </div>
+
+          <Input
+            label="Fecha *"
+            type="date"
+            value={form.fecha}
+            min={new Date().toISOString().split('T')[0]}
+            onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+            required
+            wrapperClassName="mb-3"
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+            <Input
+              label="Hora de Inicio *"
+              type="time"
+              value={form.horaInicio}
+              min="07:00"
+              max="21:00"
+              onChange={(e) => setForm({ ...form, horaInicio: e.target.value })}
+              required
+            />
+            <Input
+              label="Hora de Fin *"
+              type="time"
+              value={form.horaFin}
+              min="07:30"
+              max="21:30"
+              onChange={(e) => setForm({ ...form, horaFin: e.target.value })}
+              required
+            />
+          </div>
+
+          <Input
+            label="Motivo"
+            placeholder="Describe brevemente el motivo de tu reserva"
+            value={form.motivo}
+            onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+            wrapperClassName="mb-6"
+          />
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button type="button" variant="secondary" onClick={() => setShowModal(false)} fullWidth>Cancelar</Button>
+            <Button type="submit" variant="primary" disabled={saving} fullWidth>{saving ? 'Creando...' : 'Confirmar Reserva'}</Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* ─── Modal: Ajustar Reserva (HU-11, solo SECRETARIA) ─── */}
-      {adjusting && (
-        <div className="modal-overlay" onClick={() => setAdjusting(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>Ajustar Reserva</h2>
-              <button type="button" onClick={() => setAdjusting(null)} title="Cerrar" aria-label="Cerrar" style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '16px' }}>
+      <Modal
+        open={adjusting !== null}
+        onClose={() => setAdjusting(null)}
+        title="Ajustar Reserva"
+        description={
+          adjusting ? (
+            <>
               Reserva de <strong>{adjusting.usuario.nombre}</strong> — original: {formatDate(adjusting.fecha.split('T')[0])} · {formatTime(adjusting.horaInicio)}–{formatTime(adjusting.horaFin)}
-            </p>
+            </>
+          ) : null
+        }
+        size="lg"
+      >
+        {adjusting && (
+          <form onSubmit={handleAdjust}>
+            <div style={{ marginBottom: '14px' }}>
+              <label className="label">Sala *</label>
+              <select className="input-field" value={adjustForm.salaId}
+                onChange={(e) => setAdjustForm({ ...adjustForm, salaId: Number(e.target.value) })} required>
+                {salas.map((s) => (
+                  <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
+                ))}
+              </select>
+            </div>
 
-            <form onSubmit={handleAdjust}>
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Sala *</label>
-                <select className="input-field" value={adjustForm.salaId}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, salaId: Number(e.target.value) })} required>
-                  {salas.map((s) => (
-                    <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
-                  ))}
-                </select>
-              </div>
+            <Input
+              label="Fecha *"
+              type="date"
+              value={adjustForm.fecha}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setAdjustForm({ ...adjustForm, fecha: e.target.value })}
+              required
+              wrapperClassName="mb-3"
+            />
 
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Fecha *</label>
-                <input className="input-field" type="date" value={adjustForm.fecha}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, fecha: e.target.value })} required />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              <Input
+                label="Hora de Inicio *"
+                type="time"
+                value={adjustForm.horaInicio}
+                min="07:00"
+                max="21:00"
+                onChange={(e) => setAdjustForm({ ...adjustForm, horaInicio: e.target.value })}
+                required
+              />
+              <Input
+                label="Hora de Fin *"
+                type="time"
+                value={adjustForm.horaFin}
+                min="07:30"
+                max="21:30"
+                onChange={(e) => setAdjustForm({ ...adjustForm, horaFin: e.target.value })}
+                required
+              />
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-                <div>
-                  <label className="label">Hora de Inicio *</label>
-                  <input className="input-field" type="time" value={adjustForm.horaInicio}
-                    min="07:00" max="21:00"
-                    onChange={(e) => setAdjustForm({ ...adjustForm, horaInicio: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="label">Hora de Fin *</label>
-                  <input className="input-field" type="time" value={adjustForm.horaFin}
-                    min="07:30" max="21:30"
-                    onChange={(e) => setAdjustForm({ ...adjustForm, horaFin: e.target.value })} required />
-                </div>
-              </div>
+            <Input
+              label="Motivo"
+              value={adjustForm.motivo}
+              onChange={(e) => setAdjustForm({ ...adjustForm, motivo: e.target.value })}
+              wrapperClassName="mb-6"
+            />
 
-              <div style={{ marginBottom: '24px' }}>
-                <label className="label">Motivo</label>
-                <input className="input-field" value={adjustForm.motivo}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, motivo: e.target.value })} />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" className="btn-secondary" onClick={() => setAdjusting(null)} style={{ flex: 1 }}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={savingAdjust} style={{ flex: 1 }}>{savingAdjust ? 'Guardando...' : 'Guardar Ajuste'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button type="button" variant="secondary" onClick={() => setAdjusting(null)} fullWidth>Cancelar</Button>
+              <Button type="submit" variant="primary" disabled={savingAdjust} fullWidth>{savingAdjust ? 'Guardando...' : 'Guardar Ajuste'}</Button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
       <ConfirmDialog
         open={cancelId !== null}
