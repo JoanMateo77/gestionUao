@@ -118,9 +118,9 @@ const TORREONES: SalaSeed[] = [
   { nombre: 'Torreón 4', ubicacion: 'Torreón 4, Piso 4', capacidad: 50, facultad: FACULTADES[2], tipo: 'SALON_CLASE' },
 ];
 
-/** Salas específicas del CRAI. */
+/** Salas específicas del CRAI (base real del documento + extras inventados para demo). */
 const SALAS_CRAI: SalaSeed[] = [
-  // Piso 2 — 5 salas de estudio grupal
+  // Piso 2 — 5 salas de estudio grupal (reales según informacionUAO.txt)
   ...[1, 2, 3, 4, 5].map<SalaSeed>((n) => ({
     nombre: `CRAI · Sala de Estudio ${n}`,
     ubicacion: 'CRAI, Piso 2',
@@ -131,30 +131,66 @@ const SALAS_CRAI: SalaSeed[] = [
   { nombre: 'CRAI · Sala de Capacitación', ubicacion: 'CRAI, Piso 2', capacidad: 25, facultad: FACULTADES[0], tipo: 'CAPACITACION_CRAI' },
   { nombre: 'CRAI · Sala CELEE', ubicacion: 'CRAI, Piso 2', capacidad: 8, facultad: FACULTADES[3], tipo: 'ASESORIA' },
   { nombre: 'CRAI · Sala Domus Magister', ubicacion: 'CRAI, Piso 2', capacidad: 8, facultad: FACULTADES[3], tipo: 'ASESORIA' },
-  // Piso 3 — salas de lectura
   { nombre: 'CRAI · Sala de Lectura 1', ubicacion: 'CRAI, Piso 3', capacidad: 12, facultad: FACULTADES[3], tipo: 'LECTURA' },
   { nombre: 'CRAI · Sala de Lectura 2', ubicacion: 'CRAI, Piso 3', capacidad: 12, facultad: FACULTADES[2], tipo: 'LECTURA' },
+
+  // [INVENTADAS] Sub-salas adicionales para demo académica; no aparecen en informacionUAO.txt
+  { nombre: 'CRAI · Sala de Lectura Lúdica', ubicacion: 'CRAI, Piso 1', capacidad: 15, facultad: FACULTADES[3], tipo: 'LECTURA' },
+  { nombre: 'CRAI · Módulo Normas Técnicas', ubicacion: 'CRAI, Piso 1', capacidad: 6, facultad: FACULTADES[1], tipo: 'ASESORIA' },
+  { nombre: 'CRAI · Sala de Grabación Podcast', ubicacion: 'CRAI, Piso 2', capacidad: 4, facultad: FACULTADES[2], tipo: 'ESTUDIO_CRAI' },
+  { nombre: 'CRAI · Cubículo Individual A', ubicacion: 'CRAI, Piso 2', capacidad: 2, facultad: FACULTADES[0], tipo: 'LECTURA' },
+  { nombre: 'CRAI · Cubículo Individual B', ubicacion: 'CRAI, Piso 2', capacidad: 2, facultad: FACULTADES[0], tipo: 'LECTURA' },
+  { nombre: 'CRAI · Sala de Investigación', ubicacion: 'CRAI, Piso 3', capacidad: 10, facultad: FACULTADES[4], tipo: 'CAPACITACION_CRAI' },
 ];
 
-/** Ala Sur — salas de juntas por facultad en pisos 2-4. */
+/** Ala Sur — salas de juntas por facultad (base real) + oficinas/reuniones inventadas. */
 const SALAS_ALA_SUR: SalaSeed[] = [
+  // Base real (una sala de juntas por facultad)
   { nombre: 'Ala Sur · Sala de Juntas Ingeniería',    ubicacion: 'Ala Sur, Piso 3', capacidad: 14, facultad: FACULTADES[0], tipo: 'JUNTAS' },
   { nombre: 'Ala Sur · Sala de Juntas Económicas',    ubicacion: 'Ala Sur, Piso 2', capacidad: 14, facultad: FACULTADES[1], tipo: 'JUNTAS' },
   { nombre: 'Ala Sur · Sala de Juntas Comunicación',  ubicacion: 'Ala Sur, Piso 2', capacidad: 12, facultad: FACULTADES[2], tipo: 'JUNTAS' },
   { nombre: 'Ala Sur · Sala de Juntas Humanidades',   ubicacion: 'Ala Sur, Piso 3', capacidad: 12, facultad: FACULTADES[3], tipo: 'JUNTAS' },
   { nombre: 'Ala Sur · Sala de Juntas Sostenibilidad', ubicacion: 'Ala Sur, Piso 4', capacidad: 10, facultad: FACULTADES[4], tipo: 'JUNTAS' },
+
+  // [INVENTADAS] Sub-salas adicionales de oficinas e innovación
+  { nombre: 'Ala Sur · Sala de Innovación',           ubicacion: 'Ala Sur, Piso 3', capacidad: 10, facultad: FACULTADES[0], tipo: 'JUNTAS' },
+  { nombre: 'Ala Sur · Sala Reuniones Docentes A',    ubicacion: 'Ala Sur, Piso 2', capacidad: 6,  facultad: FACULTADES[0], tipo: 'JUNTAS' },
+  { nombre: 'Ala Sur · Sala Reuniones Docentes B',    ubicacion: 'Ala Sur, Piso 2', capacidad: 6,  facultad: FACULTADES[2], tipo: 'JUNTAS' },
+  { nombre: 'Ala Sur · Sala de Dirección Comunicaciones', ubicacion: 'Ala Sur, Piso 4', capacidad: 8, facultad: FACULTADES[2], tipo: 'JUNTAS' },
 ];
 
-/** Edificio Central — auditorios. */
+// [INVENTADAS] Ala Norte: edificio entero inventado para casos de posgrado e investigación
+// (no aparece en informacionUAO.txt; se incluye solo para demo académica)
+const SALAS_ALA_NORTE: SalaSeed[] = [
+  { nombre: 'Ala Norte · Sala de Juntas Posgrados',   ubicacion: 'Ala Norte, Piso 2', capacidad: 16, facultad: FACULTADES[0], tipo: 'JUNTAS' },
+  { nombre: 'Ala Norte · Sala de Conferencias',       ubicacion: 'Ala Norte, Piso 3', capacidad: 30, facultad: FACULTADES[1], tipo: 'CAPACITACION_CRAI' },
+  { nombre: 'Ala Norte · Laboratorio de Investigación', ubicacion: 'Ala Norte, Piso 3', capacidad: 12, facultad: FACULTADES[4], tipo: 'JUNTAS' },
+  { nombre: 'Ala Norte · Sala Seminarios',            ubicacion: 'Ala Norte, Piso 2', capacidad: 20, facultad: FACULTADES[2], tipo: 'CAPACITACION_CRAI' },
+  { nombre: 'Ala Norte · Oficina de Rectoría',        ubicacion: 'Ala Norte, Piso 4', capacidad: 8,  facultad: FACULTADES[1], tipo: 'JUNTAS' },
+];
+
+/** Edificio Central — auditorio (base real) + salones inventados. */
 const SALAS_CENTRAL: SalaSeed[] = [
   { nombre: 'Central · Auditorio Menor', ubicacion: 'Edificio Central, Piso 1', capacidad: 80, facultad: FACULTADES[1], tipo: 'AUDITORIO' },
+
+  // [INVENTADAS] Auditorios y salas protocolarias adicionales
+  { nombre: 'Central · Auditorio Mayor',         ubicacion: 'Edificio Central, Piso 1', capacidad: 100, facultad: FACULTADES[1], tipo: 'AUDITORIO' },
+  { nombre: 'Central · Salón de Eventos Rojo',   ubicacion: 'Edificio Central, Piso 2', capacidad: 60,  facultad: FACULTADES[2], tipo: 'AUDITORIO' },
+  { nombre: 'Central · Sala de Grados',          ubicacion: 'Edificio Central, Piso 3', capacidad: 50,  facultad: FACULTADES[3], tipo: 'JUNTAS' },
 ];
 
-/** Bienestar — salones de arte y cultura (piso 2). */
+/** Bienestar — salones de arte/cultura (piso 2) + bienestar integral inventados. */
 const SALAS_BIENESTAR: SalaSeed[] = [
+  // Base real (piso 2, arte y cultura)
   { nombre: 'Bienestar · Salón de Danza',  ubicacion: 'Edificio de Bienestar, Piso 2', capacidad: 30, facultad: FACULTADES[3], tipo: 'CULTURA' },
   { nombre: 'Bienestar · Salón de Música', ubicacion: 'Edificio de Bienestar, Piso 2', capacidad: 20, facultad: FACULTADES[3], tipo: 'CULTURA' },
   { nombre: 'Bienestar · Salón de Teatro', ubicacion: 'Edificio de Bienestar, Piso 2', capacidad: 40, facultad: FACULTADES[3], tipo: 'CULTURA' },
+
+  // [INVENTADAS] Espacios adicionales de bienestar integral
+  { nombre: 'Bienestar · Sala de Yoga',              ubicacion: 'Edificio de Bienestar, Piso 1', capacidad: 18, facultad: FACULTADES[3], tipo: 'CULTURA' },
+  { nombre: 'Bienestar · Consultorio Psicopedagógico', ubicacion: 'Edificio de Bienestar, Piso 3', capacidad: 4,  facultad: FACULTADES[3], tipo: 'ASESORIA' },
+  { nombre: 'Bienestar · Sala de Artes Plásticas',   ubicacion: 'Edificio de Bienestar, Piso 2', capacidad: 22, facultad: FACULTADES[3], tipo: 'CULTURA' },
+  { nombre: 'Bienestar · Sala Multiusos',            ubicacion: 'Edificio de Bienestar, Piso 1', capacidad: 35, facultad: FACULTADES[2], tipo: 'CULTURA' },
 ];
 
 const LISTA_BLANCA = [
@@ -208,6 +244,7 @@ async function main() {
     ...TORREONES,
     ...SALAS_CRAI,
     ...SALAS_ALA_SUR,
+    ...SALAS_ALA_NORTE,
     ...SALAS_CENTRAL,
     ...SALAS_BIENESTAR,
   ];

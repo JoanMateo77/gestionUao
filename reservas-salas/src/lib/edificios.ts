@@ -11,6 +11,7 @@ export type TipoEdificio =
   | 'TORREON'   // 5 torreones — un torreón por piso del campus, sin sub-salones
   | 'CRAI'      // biblioteca con salas nombradas (CELEE, Estudio 1, etc.)
   | 'ALA_SUR'   // oficinas + salas de juntas con nombre descriptivo
+  | 'ALA_NORTE' // NOTA: Ala Norte es una extensión inventada para fines académicos; no aparece en informacionUAO.txt
   | 'CENTRAL'   // auditorios y salones específicos
   | 'BIENESTAR'; // salones de arte/cultura
 
@@ -32,6 +33,8 @@ export const EDIFICIOS: Edificio[] = [
   { id: 'TORREON_4', label: 'Torreón 4', tipo: 'TORREON' },
   { id: 'CRAI',      label: 'CRAI (biblioteca)', tipo: 'CRAI' },
   { id: 'ALA_SUR',   label: 'Ala Sur', tipo: 'ALA_SUR' },
+  // Ala Norte: edificio inventado para cubrir casos de posgrado e investigación (no está en informacionUAO.txt)
+  { id: 'ALA_NORTE', label: 'Ala Norte', tipo: 'ALA_NORTE' },
   { id: 'CENTRAL',   label: 'Edificio Central', tipo: 'CENTRAL' },
   { id: 'BIENESTAR', label: 'Edificio de Bienestar', tipo: 'BIENESTAR' },
 ];
@@ -75,12 +78,14 @@ export function componerNombre(params: {
       return edificio.label.split(' (')[0];
     case 'CRAI':
     case 'ALA_SUR':
+    case 'ALA_NORTE':
     case 'CENTRAL':
     case 'BIENESTAR': {
       if (!params.descripcion) return null;
       const prefijo =
         edificio.tipo === 'CRAI' ? 'CRAI' :
         edificio.tipo === 'ALA_SUR' ? 'Ala Sur' :
+        edificio.tipo === 'ALA_NORTE' ? 'Ala Norte' :
         edificio.tipo === 'CENTRAL' ? 'Central' : 'Bienestar';
       return `${prefijo} · ${params.descripcion.trim()}`;
     }
@@ -106,6 +111,7 @@ export function componerUbicacion(params: {
       return `${edificio.label.split(' (')[0]}, Piso ${pisoDeTorreon(edificio.id)}`;
     case 'CRAI':
     case 'ALA_SUR':
+    case 'ALA_NORTE':
     case 'CENTRAL':
     case 'BIENESTAR': {
       if (!params.piso) return null;

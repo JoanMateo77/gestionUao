@@ -235,7 +235,7 @@ export default function SalasPage() {
           </div>
         )}
 
-        {edificioSel && ['CRAI', 'ALA_SUR', 'CENTRAL', 'BIENESTAR'].includes(edificioSel.tipo) && (
+        {edificioSel && ['CRAI', 'ALA_SUR', 'ALA_NORTE', 'CENTRAL', 'BIENESTAR'].includes(edificioSel.tipo) && (
           <>
             <div style={{ marginBottom: '12px' }}>
               <label className="label">Piso *</label>
@@ -251,6 +251,7 @@ export default function SalasPage() {
               placeholder={
                 edificioSel.tipo === 'CRAI' ? 'Ej: Sala de Estudio 1, Sala CELEE' :
                 edificioSel.tipo === 'ALA_SUR' ? 'Ej: Sala de Juntas Ingeniería' :
+                edificioSel.tipo === 'ALA_NORTE' ? 'Ej: Sala de Conferencias Posgrados' :
                 edificioSel.tipo === 'CENTRAL' ? 'Ej: Auditorio Menor' :
                 'Ej: Salón de Danza'
               }
