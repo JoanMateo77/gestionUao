@@ -27,6 +27,16 @@ enum EstadoReserva {
   CANCELADA
 }
 
+enum CategoriaRecurso {
+  PROYECCION
+  COMPUTO
+  CONECTIVIDAD
+  AUDIO
+  ESCRITURA
+  CONFORT
+  ACCESIBILIDAD
+}
+
 // ─────────────────────────────────────────────
 // TABLAS
 // ─────────────────────────────────────────────
@@ -101,13 +111,16 @@ model Sala {
 }
 
 model RecursoTecnologico {
-  id          Int     @id @default(autoincrement())
-  nombre      String  @unique @db.VarChar(100)
-  descripcion String? @db.VarChar(255)
+  id          Int              @id @default(autoincrement())
+  nombre      String           @unique @db.VarChar(100)
+  descripcion String?          @db.VarChar(255)
+  categoria   CategoriaRecurso @default(COMPUTO)
+  icono       String           @default("Box") @db.VarChar(50)
 
   // Relaciones inversas
   salaRecursos SalaRecurso[]
 
+  @@index([categoria])
   @@map("recurso_tecnologico")
 }
 

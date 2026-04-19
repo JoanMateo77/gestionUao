@@ -2,18 +2,37 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  Plus, CalendarDays, XCircle, Clock, MapPin, User, Edit3, Filter,
+  Plus, CalendarDays, XCircle, Clock, MapPin, User, Edit3, Filter, Users,
 } from 'lucide-react';
 import Link from 'next/link';
-import { ConfirmDialog, SkeletonCard, EmptyState, Button, Input, Modal, Card } from '@/components/ui';
+import {
+  ConfirmDialog, SkeletonCard, EmptyState, Button, Input, Modal, Card,
+  ResourceChip, AvailabilityTimeline,
+} from '@/components/ui';
+
+interface SalaRecurso {
+  id: number;
+  recurso: { id: number; nombre: string; categoria: string; icono: string };
+}
 
 interface Sala {
   id: number;
   nombre: string;
   ubicacion: string | null;
+  capacidad?: number;
   habilitada?: boolean;
+  salaRecursos?: SalaRecurso[];
+}
+
+interface Ocupado {
+  id: number;
+  horaInicio: string;
+  horaFin: string;
+  motivo?: string;
+  usuarioNombre?: string;
 }
 
 interface Reserva {
@@ -64,6 +83,8 @@ function isoToDateInput(isoDate: string): string {
 export default function ReservasPage() {
   const { data: session } = useSession();
   const isSecretaria = session?.user?.rol === 'SECRETARIA';
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [data, setData] = useState<ApiResponse | null>(null);
   const [salas, setSalas] = useState<Sala[]>([]);
@@ -71,6 +92,10 @@ export default function ReservasPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('');
   const [page, setPage] = useState(1);
+
+  // Disponibilidad del día (timeline)
+  const [ocupados, setOcupados] = useState<Ocupado[]>([]);
+  const [loadingAvail, setLoadingAvail] = useState(false);
 
   // Filtros SECRETARIA (HU-13)
   const [filtroSalaId, setFiltroSalaId] = useState<string>('');
@@ -120,6 +145,42 @@ export default function ReservasPage() {
 
   useEffect(() => { fetchReservas(); }, [fetchReservas]);
   useEffect(() => { fetchSalas(); }, [fetchSalas]);
+
+  // Preselección desde query (?salaId=X&new=1) al entrar desde el catálogo
+  useEffect(() => {
+    const sid = searchParams.get('salaId');
+    const isNew = searchParams.get('new') === '1';
+    if (sid && isNew) {
+      const salaId = Number(sid);
+      if (Number.isFinite(salaId)) {
+        setForm({ salaId, fecha: '', horaInicio: '', horaFin: '', motivo: '' });
+        setShowModal(true);
+        // Limpiar query para evitar reabrir en navegación
+        router.replace('/reservas', { scroll: false });
+      }
+    }
+  }, [searchParams, router]);
+
+  // Cargar disponibilidad de la sala/fecha seleccionadas
+  const fetchAvailability = useCallback(async (salaId: number, fecha: string) => {
+    if (!salaId || !fecha) { setOcupados([]); return; }
+    setLoadingAvail(true);
+    try {
+      const res = await fetch(`/api/rooms/${salaId}/availability?fecha=${fecha}`);
+      const json = await res.json();
+      if (res.ok) setOcupados(json.ocupados || []);
+      else setOcupados([]);
+    } catch { setOcupados([]); }
+    finally { setLoadingAvail(false); }
+  }, []);
+
+  useEffect(() => {
+    if (showModal && form.salaId && form.fecha) {
+      fetchAvailability(Number(form.salaId), form.fecha);
+    } else {
+      setOcupados([]);
+    }
+  }, [showModal, form.salaId, form.fecha, fetchAvailability]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
@@ -193,6 +254,7 @@ export default function ReservasPage() {
   const activas = reservas.filter((r) => r.estado === 'CONFIRMADA').length;
   const historial = reservas.filter((r) => r.estado === 'CANCELADA').length;
   const hasActiveFilters = filtroSalaId || filtroFechaInicio || filtroFechaFin;
+  const salaSel = salas.find((s) => s.id === Number(form.salaId));
 
   return (
     <div className="fade-in">
@@ -437,6 +499,41 @@ export default function ReservasPage() {
             </select>
           </div>
 
+          {/* Panel de contexto de la sala seleccionada */}
+          {salaSel && (
+            <div
+              style={{
+                padding: '12px 14px', borderRadius: '10px', marginBottom: '14px',
+                background: 'var(--bg-input)', border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '0.8rem', marginBottom: salaSel.salaRecursos?.length ? '8px' : 0 }}>
+                {salaSel.ubicacion && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}>
+                    <MapPin size={13} /> {salaSel.ubicacion}
+                  </span>
+                )}
+                {typeof salaSel.capacidad === 'number' && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}>
+                    <Users size={13} /> Capacidad {salaSel.capacidad}
+                  </span>
+                )}
+              </div>
+              {salaSel.salaRecursos && salaSel.salaRecursos.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {salaSel.salaRecursos.map((sr) => (
+                    <ResourceChip
+                      key={sr.id}
+                      nombre={sr.recurso.nombre}
+                      categoria={sr.recurso.categoria}
+                      icono={sr.recurso.icono}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           <Input
             label="Fecha *"
             type="date"
@@ -467,6 +564,18 @@ export default function ReservasPage() {
               required
             />
           </div>
+
+          {/* Timeline de disponibilidad */}
+          {form.salaId > 0 && form.fecha && (
+            <div style={{ marginBottom: '14px' }}>
+              <label className="label" style={{ marginBottom: '8px' }}>Disponibilidad del día</label>
+              <AvailabilityTimeline
+                ocupados={ocupados}
+                seleccion={{ horaInicio: form.horaInicio, horaFin: form.horaFin }}
+                loading={loadingAvail}
+              />
+            </div>
+          )}
 
           <Input
             label="Motivo"

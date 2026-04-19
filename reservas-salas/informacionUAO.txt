@@ -1,0 +1,159 @@
+Contexto UAO — Sistema de Reservas de Salas
+Brief de información real de la Universidad Autónoma de Occidente (UAO, Cali, Colombia) para poblar un sistema de reservas de salas de reuniones ya construido.
+
+1. Información institucional
+
+Nombre: Universidad Autónoma de Occidente (UAO)
+Tipo: Universidad privada sin ánimo de lucro
+Ubicación principal: Cali, Valle del Cauca, Colombia
+Campus principal: Valle del Lilí — Calle 25 #115-85, Km 2 vía Cali–Jamundí, Código postal 760030
+PBX: +57 (602) 318 8000
+Acreditación: Institucional de Alta Calidad (Resolución 23002, noviembre 2021)
+Fundación: 1970
+
+
+2. Facultades (para seed de la tabla facultad)
+La UAO tiene 5 facultades oficiales. Úsalas como catálogo de facultades en el sistema:
+ID sugeridoNombre oficialAbreviación1Facultad de Ingeniería y Ciencias BásicasING2Facultad de Ciencias Económicas y AdministrativasECO3Facultad de Comunicación y Ciencias SocialesCOM4Facultad de Humanidades y ArtesHUM5Instituto de Estudios para la SostenibilidadIES
+Correos de contacto típicos por facultad (para la lista blanca de secretarias):
+
+secretaria.ingenieria@uao.edu.co
+secretaria.economicas@uao.edu.co
+secretaria.comunicacion@uao.edu.co
+secretaria.humanidades@uao.edu.co
+secretaria.sostenibilidad@uao.edu.co
+
+
+3. Nomenclatura de edificios y ubicaciones (para el campo ubicacion de la sala)
+Nombres reales que usa la comunidad UAO para referirse a los edificios del Campus Valle del Lilí. Esto es útil para autocompletar o sugerencias en el campo ubicación:
+Edificios principales
+
+Edificio Central
+Ala Sur (piso 1, 2, 3, 4)
+Edificio Aulas 1
+Edificio Aulas 2
+Edificio Aulas 3
+Edificio de Bienestar
+CRAI (Centro de Recursos para el Aprendizaje y la Investigación)
+
+Torreones (edificios circulares de aulas)
+
+Torreón 0 (semi-subterráneo, acceso por escaleras descendentes junto al Torreón 1)
+Torreón 1
+Torreón 2
+Torreón 3
+Torreón 4
+
+Ejemplos de formato de ubicación
+
+Aulas 1, Piso 2, Salón 205
+Torreón 3, Piso 1
+Ala Sur, Piso 4
+CRAI, Piso 2
+Edificio Central, Piso 3
+
+
+4. Ejemplos realistas de salas para seed
+Datos listos para poblar la tabla sala. Todos respetan el rango de capacidad 2–100.
+NombreUbicaciónCapacidadFacultadSala de Reuniones A101Aulas 1, Piso 115IngenieríaSala de Reuniones A205Aulas 2, Piso 225IngenieríaSala de Juntas IngenieríaAla Sur, Piso 312IngenieríaSalón Torreón 2-101Torreón 2, Piso 130IngenieríaSala de Estudio CRAI-P2-1CRAI, Piso 28IngenieríaSala de Estudio CRAI-P2-2CRAI, Piso 26ComunicaciónSala de Estudio CRAI-P3-1CRAI, Piso 36HumanidadesSala de Juntas ComunicaciónAla Sur, Piso 210ComunicaciónSala Económicas B-301Edificio Central, Piso 320EconómicasAuditorio MenorEdificio Central, Piso 180EconómicasSala CELEECRAI, Piso 28HumanidadesSala Domus MagisterCRAI, Piso 28HumanidadesSala de Capacitación CRAICRAI, Piso 225IngenieríaSala SostenibilidadAla Sur, Piso 415SostenibilidadTorreón 4-203Torreón 4, Piso 235Comunicación
+
+5. Catálogo de recursos tecnológicos (para la tabla recurso)
+15 recursos agrupados por categoría. Son los que realmente existen en las salas de la UAO. Cada recurso debe insertarse como una fila independiente; la relación con sala es M:N.
+NombreCategoríaÍcono LucideDescripción cortaVideoproyectorPROYECCIONProjectorProyector de techo o portátilTelevisorPROYECCIONTvPantalla plana con soporte fijo o móvilPantalla de proyecciónPROYECCIONMonitorPantalla tensada o retráctilComputadorCOMPUTOComputerPC de escritorio para cátedraCámara webCOMPUTOWebcamPara sesiones híbridasWiFiCONECTIVIDADWifiRed institucional UAOCable HDMICONECTIVIDADCablePara conectar portátilesCable VGACONECTIVIDADCableCompatibilidad con equipos antiguosSistema de audioAUDIOVolume2Parlantes integrados o externosMicrófonoAUDIOMicInalámbrico o alámbricoTablero acrílicoESCRITURAPenLineTablero blanco tradicionalTablero de vidrioESCRITURASquareTablero de vidrio borrableAire acondicionadoCONFORTSnowflakeClimatizaciónCortinas blackoutCONFORTBlindsPara proyecciones con luz reducidaAcceso movilidad reducidaACCESIBILIDADAccessibilityRampa o acceso adaptado
+Enum sugerido para CategoriaRecurso
+PROYECCION
+COMPUTO
+CONECTIVIDAD
+AUDIO
+ESCRITURA
+CONFORT
+ACCESIBILIDAD
+
+6. Asignación sugerida de recursos por tipo de sala (para seed de sala_recurso)
+Basado en lo que realmente tienen las salas UAO según su tipo:
+Sala de reuniones estándar en Aulas 1/2/3 o Torreones
+Videoproyector, Pantalla de proyección, Computador, WiFi, HDMI, VGA, Sistema de audio, Tablero acrílico, Aire acondicionado
+Sala de estudio del CRAI (grupal)
+Televisor, WiFi, HDMI, VGA, Aire acondicionado
+Sala de capacitación CRAI (Piso 2)
+Videoproyector, Computador, WiFi, Sistema de audio, Tablero acrílico, Aire acondicionado
+Sala de juntas de decanatura / facultad
+Televisor, Computador, WiFi, HDMI, Cámara web, Sistema de audio, Micrófono, Tablero de vidrio, Aire acondicionado, Cortinas blackout
+Auditorio menor
+Videoproyector, Pantalla de proyección, Computador, WiFi, HDMI, VGA, Sistema de audio, Micrófono, Aire acondicionado, Cortinas blackout, Acceso movilidad reducida
+Sala CELEE / Domus Magister (asesoría de escritura)
+Computador, WiFi, Tablero acrílico, Aire acondicionado
+
+7. Roles y permisos (resumen operativo)
+SECRETARIA
+Correo debe estar en tabla lista_blanca al momento del registro. Formato típico: secretaria.{facultad}@uao.edu.co. Permisos:
+
+CRUD completo sobre salas de su facultad
+Gestión de recursos de salas de su facultad (agregar/retirar)
+Ver y cancelar cualquier reserva de su facultad
+Ver historial completo de su facultad
+
+DOCENTE
+Se registra libremente con correo personal o institucional. Permisos:
+
+Ver salas habilitadas de su facultad
+Crear reservas solo en salas de su facultad
+Cancelar solo sus propias reservas
+Ver su historial personal
+
+
+8. Reglas de negocio consolidadas
+Horario operativo
+Lunes a sábado, 7:00 a 21:30. Rechazar reservas fuera de esta franja.
+Duración de reservas
+Unidad mínima sugerida: bloques de 30 minutos. Hora de fin siempre estrictamente mayor que hora de inicio.
+Solapamiento
+Una sala no puede tener dos reservas CONFIRMADA cuyos rangos [inicio, fin) se intersecten. La validación aplica con tstzrange en Postgres o con comparación aritmética: existing.inicio < nuevo.fin AND existing.fin > nuevo.inicio.
+Scoping por facultad
+Docente solo lista y reserva salas donde sala.facultad_id == docente.facultad_id. Enforcement tanto en UI como en backend (tRPC procedure / API route). No confiar solo en el frontend.
+Estados de reserva
+
+CONFIRMADA — estado inicial al crear
+CANCELADA — terminal, no se puede volver a CONFIRMADA
+
+No hay estado PENDIENTE ni flujo de aprobación. Las reservas se auto-confirman si no hay solapamiento.
+Estados de sala
+
+HABILITADA — aparece en calendario y se puede reservar
+DESHABILITADA — oculta del calendario. Al deshabilitar una sala con reservas futuras confirmadas, el sistema debe advertir y pedir confirmación explícita, pero las reservas ya creadas se mantienen.
+
+Lista blanca de secretarias
+Tabla lista_blanca con al menos: correo, facultad_id, activo. Al registrarse un usuario, si su correo está en lista_blanca.activo = true, se le asigna rol SECRETARIA y la facultad de la lista; si no, se le asigna rol DOCENTE con la facultad que el usuario seleccione en el formulario.
+Duplicados
+
+Nombre de sala único por facultad (no globalmente): UNIQUE(nombre, facultad_id) en el índice
+Recurso único por sala: PK compuesta (sala_id, recurso_id) en la tabla pivote
+Correo único globalmente en usuario
+
+Auditoría (tabla log_auditoria)
+Registrar todas las acciones con: usuario_id, accion, entidad, entidad_id, datos_anteriores (JSON), datos_nuevos (JSON), timestamp.
+Acciones mínimas que deben loguearse:
+
+REGISTRO_USUARIO
+LOGIN (opcional)
+CREAR_SALA, EDITAR_SALA, CAMBIAR_ESTADO_SALA
+AGREGAR_RECURSO, RETIRAR_RECURSO
+CREAR_RESERVA, CANCELAR_RESERVA
+
+
+9. Datos para poblar la tabla lista_blanca
+Para soportar el CP-01-02 (registro como secretaria):
+correofacultadactivosecretaria.ingenieria@uao.edu.coIngenieríatruesecretaria.economicas@uao.edu.coEconómicastruesecretaria.comunicacion@uao.edu.coComunicacióntruesecretaria.humanidades@uao.edu.coHumanidadestruesecretaria.sostenibilidad@uao.edu.coSostenibilidadtrue
+
+10. Mensajes en español para la UI (tono UAO)
+Textos recomendados, consistentes con el tono formal-académico colombiano:
+SituaciónMensajeRegistro exitoso"Cuenta creada exitosamente"Correo duplicado"Este correo ya está registrado"Contraseñas no coinciden"Las contraseñas no coinciden"Login fallido"Credenciales inválidas"Sala creada"Sala registrada correctamente"Sala duplicada"Ya existe una sala con ese nombre en su facultad"Capacidad inválida"La capacidad debe estar entre 2 y 100 personas"Recurso duplicado"Este recurso ya está asignado a la sala"Reserva creada"Reserva confirmada exitosamente"Solapamiento"Ya existe una reserva confirmada en ese horario"Fuera de franja inicio"La hora de inicio no puede ser antes de las 07:00"Fuera de franja fin"La hora de fin no puede ser después de las 21:30"Orden horario"La hora de fin debe ser posterior a la hora de inicio"Reserva cancelada"Reserva cancelada"Ya cancelada"La reserva ya está cancelada"Permiso denegado reserva"Solo puede cancelar sus propias reservas"Facultad ajena"No puede reservar salas de otra facultad"
+
+11. Notas para la IA que reciba este documento
+
+Este es un proyecto académico universitario, no un sistema en producción. Prioriza claridad y cobertura de casos de prueba sobre optimización.
+La app ya está construida con Next.js + Prisma + Neon PostgreSQL. Los cambios deben respetar esa arquitectura.
+No inventes laboratorios, estudios de televisión, ni espacios especializados: las "salas" son salas de reuniones genéricas, no espacios de dominio específico.
+La UAO es real; usa los nombres de edificios y facultades exactamente como aparecen aquí para que el sistema se sienta contextualizado.
+Todo el texto de UI va en español de Colombia, tono formal pero no acartonado.
+No agregues campos que no aparezcan en los casos de prueba existentes. El scope es intencionalmente acotado
