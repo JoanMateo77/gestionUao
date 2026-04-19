@@ -48,6 +48,43 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* ─── Accesibilidad: foco visible global ─── */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ─── Drawer lateral móvil ─── */
+@keyframes slideInLeft {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.drawer-panel {
+  animation: slideInLeft 0.22s ease-out;
+}
+
 /* ─── Card ─── */
 .card {
   background: var(--bg-card);
@@ -151,12 +188,18 @@ body {
   font-size: 0.875rem;
   font-family: inherit;
   transition: all 0.2s ease;
-  outline: none;
 }
 
 .input-field:focus {
+  outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+}
+
+.input-field:focus-visible {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.12);
 }
 
 .input-field::placeholder {

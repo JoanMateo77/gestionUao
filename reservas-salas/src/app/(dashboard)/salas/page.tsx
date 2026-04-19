@@ -135,7 +135,7 @@ export default function SalasPage() {
       ) : filtered.length === 0 ? (
         <div className="empty-state"><DoorOpen size={40} /><p style={{ marginTop: '8px' }}>No se encontraron salas</p></div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((sala) => (
             <div key={sala.id} className="card" style={{ padding: '20px' }}>
               {/* Header */}

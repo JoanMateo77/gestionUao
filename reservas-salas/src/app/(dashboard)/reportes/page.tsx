@@ -116,8 +116,8 @@ export default function ReportesPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.9rem' }}>
             Uso por número de reservas — {(datos as FilaReservas[]).reduce((s, r) => s + r.total, 0)} reservas totales
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <div className="w-full overflow-x-auto">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: '560px' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-input)' }}>
                   <th style={thStyle}>#</th>
@@ -150,8 +150,8 @@ export default function ReportesPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.9rem' }}>
             Horas reservadas por sala — {(datos as FilaHoras[]).reduce((s, r) => s + r.horas, 0).toFixed(2)} h totales
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <div className="w-full overflow-x-auto">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: '560px' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-input)' }}>
                   <th style={thStyle}>#</th>
@@ -180,8 +180,8 @@ export default function ReportesPage() {
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.9rem' }}>
             Reservas por usuario — {(datos as FilaUsuario[]).length} usuarios activos
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
+          <div className="w-full overflow-x-auto">
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem', minWidth: '560px' }}>
               <thead>
                 <tr style={{ background: 'var(--bg-input)' }}>
                   <th style={thStyle}>#</th>
