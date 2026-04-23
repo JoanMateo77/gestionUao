@@ -15,32 +15,6 @@ export type TipoEdificio =
   | 'CENTRAL'   // auditorios y salones específicos
   | 'BIENESTAR'; // salones de arte/cultura
 
-/**
- * Límite de salones por piso para los edificios de tipo AULAS (Aulas 1–4).
- * - Pisos 1, 2, 3 → máximo 8 salones
- * - Piso 4        → máximo 12 salones
- */
-export const AULAS_MAX_SALONES: Record<number, number> = {
-  1: 8,
-  2: 8,
-  3: 8,
-  4: 12,
-};
-
-/**
- * Retorna el número máximo de salones permitidos en un piso de un edificio de tipo AULAS.
- * Devuelve `null` si el edificio no es de tipo AULAS o el piso no tiene regla definida.
- */
-export function getMaxSalonesPorPiso(
-  edificioId: string,
-  piso: number | string
-): number | null {
-  const edificio = getEdificio(edificioId);
-  if (!edificio || edificio.tipo !== 'AULAS') return null;
-  const pisoNum = Number(piso);
-  return AULAS_MAX_SALONES[pisoNum] ?? null;
-}
-
 export interface Edificio {
   id: string;       // identificador estable (para <select value>)
   label: string;    // cómo se muestra al usuario
@@ -59,7 +33,6 @@ export const EDIFICIOS: Edificio[] = [
   { id: 'TORREON_4', label: 'Torreón 4', tipo: 'TORREON' },
   { id: 'CRAI', label: 'CRAI (biblioteca)', tipo: 'CRAI' },
   { id: 'ALA_SUR', label: 'Ala Sur', tipo: 'ALA_SUR' },
-  // Ala Norte: edificio inventado para cubrir casos de posgrado e investigación (no está en informacionUAO.txt)
   { id: 'ALA_NORTE', label: 'Ala Norte', tipo: 'ALA_NORTE' },
   { id: 'CENTRAL', label: 'Edificio Central', tipo: 'CENTRAL' },
   { id: 'BIENESTAR', label: 'Edificio de Bienestar', tipo: 'BIENESTAR' },
@@ -67,8 +40,7 @@ export const EDIFICIOS: Edificio[] = [
 
 /** Lista de nombres de edificio para filtros en el catálogo (match sobre ubicacion). */
 export const EDIFICIOS_UAO: string[] = EDIFICIOS.map((e) => {
-  // Usamos el prefijo que aparece en ubicaciones reales.
-  if (e.tipo === 'TORREON') return e.label.split(' (')[0]; // "Torreón 0"
+  if (e.tipo === 'TORREON') return e.label.split(' (')[0];
   if (e.id === 'CRAI') return 'CRAI';
   if (e.id === 'BIENESTAR') return 'Bienestar';
   return e.label;
@@ -116,6 +88,7 @@ export function componerNombre(params: {
       return `${prefijo} · ${params.descripcion.trim()}`;
     }
   }
+  return null;
 }
 
 /** Compone ubicación descriptiva para mostrar en la UI y guardar en BD. */
@@ -145,4 +118,31 @@ export function componerUbicacion(params: {
       return `${baseLabel}, Piso ${params.piso}`;
     }
   }
+  return null;
+}
+
+/**
+ * Límite de salones por piso para los edificios de tipo AULAS (Aulas 1–4).
+ * - Pisos 1, 2, 3 → máximo 8 salones
+ * - Piso 4        → máximo 12 salones
+ */
+export const AULAS_MAX_SALONES: Record<number, number> = {
+  1: 8,
+  2: 8,
+  3: 8,
+  4: 12,
+};
+
+/**
+ * Retorna el número máximo de salones permitidos en un piso de un edificio de tipo AULAS.
+ * Devuelve `null` si el edificio no es de tipo AULAS o el piso no tiene regla definida.
+ */
+export function getMaxSalonesPorPiso(
+  edificioId: string,
+  piso: number | string
+): number | null {
+  const edificio = getEdificio(edificioId);
+  if (!edificio || edificio.tipo !== 'AULAS') return null;
+  const pisoNum = Number(piso);
+  return AULAS_MAX_SALONES[pisoNum] ?? null;
 }
