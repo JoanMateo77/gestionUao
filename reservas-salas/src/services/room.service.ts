@@ -1,14 +1,14 @@
 // src/services/room.service.ts
-import { roomRepository } from '@/repositories/room.repository';
+import { roomRepository, type RoomFilters } from '@/repositories/room.repository';
 import { reservationRepository } from '@/repositories/reservation.repository';
 import { createRoomSchema, updateRoomSchema, updateRoomStatusSchema } from '@/lib/validations/room.schema';
 import { audit } from '@/lib/audit';
 import { AULAS_MAX_SALONES } from '@/lib/edificios';
 
 export const roomService = {
-  /** Listar salas de la facultad del usuario */
-  async listByFacultad(facultadId: number) {
-    return roomRepository.findByFacultad(facultadId);
+  /** Listar salas de la facultad del usuario (con filtros opcionales) */
+  async listByFacultad(facultadId: number, filters: RoomFilters = {}) {
+    return roomRepository.findByFacultad(facultadId, filters);
   },
 
   /** Obtener sala por ID */

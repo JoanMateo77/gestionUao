@@ -5,14 +5,35 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { roomService } from '@/services/room.service';
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
     }
 
-    const salas = await roomService.listByFacultad(session.user.facultadId);
+    const q = new URL(req.url).searchParams;
+
+    const toInt = (v: string | null): number | undefined => {
+      if (!v) return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
+    const toIntList = (v: string | null): number[] | undefined => {
+      if (!v) return undefined;
+      const list = v.split(',').map((s) => Number(s.trim())).filter(Number.isFinite);
+      return list.length > 0 ? list : undefined;
+    };
+
+    const salas = await roomService.listByFacultad(session.user.facultadId, {
+      capacidadMin: toInt(q.get('capacidadMin')),
+      capacidadMax: toInt(q.get('capacidadMax')),
+      edificio: q.get('edificio') || undefined,
+      recursos: toIntList(q.get('recursos')),
+      search: q.get('q') || undefined,
+      soloHabilitadas: q.get('soloHabilitadas') === 'true',
+    });
     return NextResponse.json(salas);
   } catch (error) {
     console.error('Error al listar salas:', error);

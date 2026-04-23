@@ -210,7 +210,6 @@ export default function SalasPage() {
       return `El piso ${piso} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`;
     return null;
   })();
-
   function renderFormCrear() {
     return (
       <form onSubmit={handleSubmit}>
@@ -336,12 +335,13 @@ export default function SalasPage() {
               : puedeGuardarCreacion
                 ? 'var(--success-bg)'
                 : 'var(--bg-input)',
-            border: `1px solid ${salonExcedeLimite
+            border: `1px solid ${
+              salonExcedeLimite
                 ? 'var(--danger, #e53e3e)'
                 : puedeGuardarCreacion
                   ? 'var(--success)'
                   : 'var(--border)'
-              }`,
+            }`,
             fontSize: '0.8rem',
           }}
         >

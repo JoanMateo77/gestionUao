@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { BarChart3, Clock, User, Search } from 'lucide-react';
+import { EmptyState, Button, Input, Card, Table } from '@/components/ui';
 
 type TipoReporte = 'reservas' | 'horas' | 'usuario';
 
@@ -84,136 +85,128 @@ export default function ReportesPage() {
       </div>
 
       {/* Filtros de fecha */}
-      <div className="card" style={{ padding: '20px', marginBottom: '24px' }}>
+      <Card padding="lg" className="mb-6">
         <h3 style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '16px' }}>Rango de fechas (opcional)</h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'end' }}>
-          <div>
-            <label className="label" style={{ fontSize: '0.75rem' }}>Desde</label>
-            <input className="input-field" type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />
-          </div>
-          <div>
-            <label className="label" style={{ fontSize: '0.75rem' }}>Hasta</label>
-            <input className="input-field" type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
-          </div>
-          <button className="btn-primary" onClick={generarReporte} disabled={loading}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-            {loading ? <><div className="spinner" style={{ width: '14px', height: '14px' }} /> Generando...</>
-              : <><Search size={16} /> Generar Reporte</>}
-          </button>
+          <Input label="Desde" type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />
+          <Input label="Hasta" type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
+          <Button
+            variant="primary"
+            onClick={generarReporte}
+            disabled={loading}
+            leftIcon={loading ? <div className="spinner" style={{ width: '14px', height: '14px' }} /> : <Search size={16} />}
+          >
+            {loading ? 'Generando...' : 'Generar Reporte'}
+          </Button>
         </div>
-      </div>
+      </Card>
 
       {/* Resultados */}
       {datos !== null && datos.length === 0 && (
-        <div className="empty-state">
-          <BarChart3 size={40} />
-          <p style={{ marginTop: '8px' }}>No hay datos disponibles para el rango seleccionado</p>
-        </div>
+        <EmptyState
+          icon={<BarChart3 size={40} />}
+          title="No hay datos disponibles"
+          description="No se encontraron reservas para el rango de fechas seleccionado."
+        />
       )}
 
       {datos !== null && datos.length > 0 && tipo === 'reservas' && (
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+        <Card padding="none" className="overflow-hidden">
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.9rem' }}>
             Uso por número de reservas — {(datos as FilaReservas[]).reduce((s, r) => s + r.total, 0)} reservas totales
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-input)' }}>
-                  <th style={thStyle}>#</th>
-                  <th style={thStyle}>Sala</th>
-                  <th style={thStyle}>Ubicación</th>
-                  <th style={{ ...thStyle, color: 'var(--success)' }}>Confirmadas</th>
-                  <th style={{ ...thStyle, color: 'var(--danger)' }}>Canceladas</th>
-                  <th style={thStyle}>Total</th>
+          <Table className="rounded-none border-0" tableClassName="min-w-[560px]">
+            <thead>
+              <tr style={{ background: 'var(--bg-input)' }}>
+                <th style={thStyle}>#</th>
+                <th style={thStyle}>Sala</th>
+                <th style={thStyle}>Ubicación</th>
+                <th style={{ ...thStyle, color: 'var(--success)' }}>Confirmadas</th>
+                <th style={{ ...thStyle, color: 'var(--danger)' }}>Canceladas</th>
+                <th style={thStyle}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(datos as FilaReservas[]).map((row, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={tdStyle}>{i + 1}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{row.sala}</td>
+                  <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{row.ubicacion ?? '—'}</td>
+                  <td style={{ ...tdStyle, color: 'var(--success)' }}>{row.confirmadas}</td>
+                  <td style={{ ...tdStyle, color: 'var(--danger)' }}>{row.canceladas}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{row.total}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {(datos as FilaReservas[]).map((row, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={tdStyle}>{i + 1}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{row.sala}</td>
-                    <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{row.ubicacion ?? '—'}</td>
-                    <td style={{ ...tdStyle, color: 'var(--success)' }}>{row.confirmadas}</td>
-                    <td style={{ ...tdStyle, color: 'var(--danger)' }}>{row.canceladas}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{row.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              ))}
+            </tbody>
+          </Table>
+        </Card>
       )}
 
       {datos !== null && datos.length > 0 && tipo === 'horas' && (
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+        <Card padding="none" className="overflow-hidden">
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.9rem' }}>
             Horas reservadas por sala — {(datos as FilaHoras[]).reduce((s, r) => s + r.horas, 0).toFixed(2)} h totales
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-input)' }}>
-                  <th style={thStyle}>#</th>
-                  <th style={thStyle}>Sala</th>
-                  <th style={thStyle}>Ubicación</th>
-                  <th style={thStyle}>Horas reservadas</th>
+          <Table className="rounded-none border-0" tableClassName="min-w-[560px]">
+            <thead>
+              <tr style={{ background: 'var(--bg-input)' }}>
+                <th style={thStyle}>#</th>
+                <th style={thStyle}>Sala</th>
+                <th style={thStyle}>Ubicación</th>
+                <th style={thStyle}>Horas reservadas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(datos as FilaHoras[]).map((row, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={tdStyle}>{i + 1}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{row.sala}</td>
+                  <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{row.ubicacion ?? '—'}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{row.horas} h</td>
                 </tr>
-              </thead>
-              <tbody>
-                {(datos as FilaHoras[]).map((row, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={tdStyle}>{i + 1}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{row.sala}</td>
-                    <td style={{ ...tdStyle, color: 'var(--text-muted)' }}>{row.ubicacion ?? '—'}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{row.horas} h</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              ))}
+            </tbody>
+          </Table>
+        </Card>
       )}
 
       {datos !== null && datos.length > 0 && tipo === 'usuario' && (
-        <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
+        <Card padding="none" className="overflow-hidden">
           <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', fontWeight: 600, fontSize: '0.9rem' }}>
             Reservas por usuario — {(datos as FilaUsuario[]).length} usuarios activos
           </div>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.82rem' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-input)' }}>
-                  <th style={thStyle}>#</th>
-                  <th style={thStyle}>Nombre</th>
-                  <th style={thStyle}>Correo</th>
-                  <th style={thStyle}>Rol</th>
-                  <th style={{ ...thStyle, color: 'var(--success)' }}>Confirmadas</th>
-                  <th style={{ ...thStyle, color: 'var(--danger)' }}>Canceladas</th>
-                  <th style={thStyle}>Total</th>
+          <Table className="rounded-none border-0" tableClassName="min-w-[560px]">
+            <thead>
+              <tr style={{ background: 'var(--bg-input)' }}>
+                <th style={thStyle}>#</th>
+                <th style={thStyle}>Nombre</th>
+                <th style={thStyle}>Correo</th>
+                <th style={thStyle}>Rol</th>
+                <th style={{ ...thStyle, color: 'var(--success)' }}>Confirmadas</th>
+                <th style={{ ...thStyle, color: 'var(--danger)' }}>Canceladas</th>
+                <th style={thStyle}>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(datos as FilaUsuario[]).map((row, i) => (
+                <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={tdStyle}>{i + 1}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{row.nombre}</td>
+                  <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.75rem' }}>{row.correo}</td>
+                  <td style={tdStyle}>
+                    <span className={`badge ${row.rol === 'SECRETARIA' ? 'badge-info' : 'badge-success'}`}
+                      style={{ fontSize: '0.65rem' }}>
+                      {row.rol === 'SECRETARIA' ? 'Secretaria' : 'Docente'}
+                    </span>
+                  </td>
+                  <td style={{ ...tdStyle, color: 'var(--success)' }}>{row.confirmadas}</td>
+                  <td style={{ ...tdStyle, color: 'var(--danger)' }}>{row.canceladas}</td>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{row.total}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {(datos as FilaUsuario[]).map((row, i) => (
-                  <tr key={i} style={{ borderBottom: '1px solid var(--border)' }}>
-                    <td style={tdStyle}>{i + 1}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{row.nombre}</td>
-                    <td style={{ ...tdStyle, color: 'var(--text-muted)', fontSize: '0.75rem' }}>{row.correo}</td>
-                    <td style={tdStyle}>
-                      <span className={`badge ${row.rol === 'SECRETARIA' ? 'badge-info' : 'badge-success'}`}
-                        style={{ fontSize: '0.65rem' }}>
-                        {row.rol === 'SECRETARIA' ? 'Secretaria' : 'Docente'}
-                      </span>
-                    </td>
-                    <td style={{ ...tdStyle, color: 'var(--success)' }}>{row.confirmadas}</td>
-                    <td style={{ ...tdStyle, color: 'var(--danger)' }}>{row.canceladas}</td>
-                    <td style={{ ...tdStyle, fontWeight: 600 }}>{row.total}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+              ))}
+            </tbody>
+          </Table>
+        </Card>
       )}
     </div>
   );
