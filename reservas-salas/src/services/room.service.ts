@@ -5,6 +5,44 @@ import { createRoomSchema, updateRoomSchema, updateRoomStatusSchema } from '@/li
 import { audit } from '@/lib/audit';
 import { AULAS_MAX_SALONES } from '@/lib/edificios';
 
+/**
+ * Valida que una ubicación con formato "Aulas N, Piso P, Salón XX" respete
+ * el rango de salones permitido para ese piso. Si la ubicación no pertenece
+ * a un edificio AULAS reconocido, no aplica validación.
+ *
+ * Cuando `checkCount` es true, además consulta cuántos salones ya existen en
+ * ese piso y rechaza si se alcanzó el límite (uso típico en `create`).
+ */
+async function validateAulasSalonRange(
+  ubicacion: string,
+  options: { checkCount: boolean }
+): Promise<void> {
+  const matchUbicacion = ubicacion.match(/^(Aulas\s+\d+),\s+Piso\s+(\d+),/i);
+  if (!matchUbicacion) return;
+
+  const edificioLabel = matchUbicacion[1];
+  const piso = Number(matchUbicacion[2]);
+  const limiteMax = AULAS_MAX_SALONES[piso];
+  if (limiteMax === undefined) return;
+
+  const matchSalon = ubicacion.match(/,\s*Sal[oó]n\s+(\d+)$/i);
+  const numSalon = matchSalon ? Number(matchSalon[1]) : 0;
+  if (numSalon < 1 || numSalon > limiteMax) {
+    throw new Error(
+      `El piso ${piso} de ${edificioLabel} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`
+    );
+  }
+
+  if (options.checkCount) {
+    const actuales = await roomRepository.countByEdificioPiso(edificioLabel, piso);
+    if (actuales >= limiteMax) {
+      throw new Error(
+        `El piso ${piso} de ${edificioLabel} ya alcanzó el límite de ${limiteMax} salones`
+      );
+    }
+  }
+}
+
 export const roomService = {
   /** Listar salas de la facultad del usuario (con filtros opcionales) */
   async listByFacultad(facultadId: number, filters: RoomFilters = {}) {
@@ -25,51 +63,17 @@ export const roomService = {
     usuarioId: number,
     ip?: string
   ) {
-    // Validar datos
     const validated = createRoomSchema.parse(data);
 
-    // Verificar nombre único en la facultad
     const exists = await roomRepository.existsByNombreAndFacultad(validated.nombre, facultadId);
     if (exists) {
       throw new Error('Ya existe una sala con ese nombre en esta facultad');
     }
 
-    // -------------------------------------------------------
-    // Validar límite de salones por piso (Aulas 1–4)
-    // El nombre tiene la forma "Aulas N - PXX" y la ubicación
-    // "Aulas N, Piso P, Salón XX".  Inferimos edificio y piso
-    // desde la ubicación para no acoplarnos al formato del nombre.
-    // -------------------------------------------------------
     if (validated.ubicacion) {
-      // Detectar si pertenece a un edificio AULAS buscando en la ubicación
-      // Formato esperado: "Aulas N, Piso P, Salón XX"
-      const matchUbicacion = validated.ubicacion.match(
-        /^(Aulas\s+\d+),\s+Piso\s+(\d+),/i
-      );
-      if (matchUbicacion) {
-        const edificioLabel = matchUbicacion[1]; // e.g. "Aulas 3"
-        const piso = Number(matchUbicacion[2]);   // e.g. 2
-        const limiteMax = AULAS_MAX_SALONES[piso];
-        if (limiteMax !== undefined) {
-          // Extraer el número de salón desde la ubicación: "Aulas N, Piso P, Salón XX"
-          const matchSalon = validated.ubicacion.match(/,\s*Sal[oó]n\s+(\d+)$/i);
-          const numSalon = matchSalon ? Number(matchSalon[1]) : 0;
-          if (numSalon < 1 || numSalon > limiteMax) {
-            throw new Error(
-              `El piso ${piso} de ${edificioLabel} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`
-            );
-          }
-          const actuales = await roomRepository.countByEdificioPiso(edificioLabel, piso);
-          if (actuales >= limiteMax) {
-            throw new Error(
-              `El piso ${piso} de ${edificioLabel} ya alcanzó el límite de ${limiteMax} salones`
-            );
-          }
-        }
-      }
+      await validateAulasSalonRange(validated.ubicacion, { checkCount: true });
     }
 
-    // Crear sala
     const sala = await roomRepository.create({
       nombre: validated.nombre,
       ubicacion: validated.ubicacion || '',
@@ -77,7 +81,6 @@ export const roomService = {
       facultadId,
     });
 
-    // Auditoría (RF-16)
     await audit({
       usuarioId,
       accion: 'CREAR_SALA',
@@ -104,29 +107,13 @@ export const roomService = {
 
     const validated = updateRoomSchema.parse(data);
 
-    // Si cambia el nombre, verificar que no exista
     if (validated.nombre) {
       const exists = await roomRepository.existsByNombreAndFacultad(validated.nombre, facultadId, id);
       if (exists) throw new Error('Ya existe una sala con ese nombre en esta facultad');
     }
 
-    // Validar rango de sal\u00f3n si la ubicaci\u00f3n es de un edificio Aulas
     if (validated.ubicacion) {
-      const matchUbicacion = validated.ubicacion.match(/^(Aulas\s+\d+),\s+Piso\s+(\d+),/i);
-      if (matchUbicacion) {
-        const edificioLabel = matchUbicacion[1];
-        const piso = Number(matchUbicacion[2]);
-        const limiteMax = AULAS_MAX_SALONES[piso];
-        if (limiteMax !== undefined) {
-          const matchSalon = validated.ubicacion.match(/,\s*Sal[oó]n\s+(\d+)$/i);
-          const numSalon = matchSalon ? Number(matchSalon[1]) : 0;
-          if (numSalon < 1 || numSalon > limiteMax) {
-            throw new Error(
-              `El piso ${piso} de ${edificioLabel} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`
-            );
-          }
-        }
-      }
+      await validateAulasSalonRange(validated.ubicacion, { checkCount: false });
     }
 
     const datosAnteriores = { nombre: sala.nombre, ubicacion: sala.ubicacion, capacidad: sala.capacidad };

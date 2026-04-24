@@ -94,10 +94,11 @@ export const roomRepository = {
 
   /**
    * Contar salones registrados en un edificio y piso específicos.
-   * Usa el prefijo de ubicación generado por `componerUbicacion`, e.g. "Aulas 3, Piso 2".
+   * Usa el prefijo de ubicación generado por `componerUbicacion`, e.g. "Aulas 3, Piso 2,".
+   * La coma final es necesaria para no contar "Piso 20" como "Piso 2".
    */
   async countByEdificioPiso(edificioLabel: string, piso: number): Promise<number> {
-    const prefijo = `${edificioLabel}, Piso ${piso}`;
+    const prefijo = `${edificioLabel}, Piso ${piso},`;
     return prisma.sala.count({
       where: {
         ubicacion: { startsWith: prefijo, mode: 'insensitive' },
