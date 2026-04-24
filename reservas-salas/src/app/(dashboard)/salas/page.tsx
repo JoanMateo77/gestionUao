@@ -319,7 +319,7 @@ export default function SalasPage() {
             className="input-field" type="number" min={2} max={100}
             value={form.capacidad}
             onChange={(e) => setForm({ ...form, capacidad: e.target.value })}
-            onFocus={(e) => { if (form.capacidad === '0') setForm({ ...form, capacidad: '' }); }}
+            onFocus={() => { if (form.capacidad === '0') setForm({ ...form, capacidad: '' }); }}
             placeholder="Ej: 30"
             required
           />
