@@ -335,13 +335,12 @@ export default function SalasPage() {
               : puedeGuardarCreacion
                 ? 'var(--success-bg)'
                 : 'var(--bg-input)',
-            border: `1px solid ${
-              salonExcedeLimite
+            border: `1px solid ${salonExcedeLimite
                 ? 'var(--danger, #e53e3e)'
                 : puedeGuardarCreacion
                   ? 'var(--success)'
                   : 'var(--border)'
-            }`,
+              }`,
             fontSize: '0.8rem',
           }}
         >
