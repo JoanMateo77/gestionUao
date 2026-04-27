@@ -18,6 +18,8 @@ import {
   EDIFICIOS, getEdificio, pisoDeTorreon,
   componerNombre as componerNombreSala,
   componerUbicacion as componerUbicacionSala,
+  //importar funciones centralizadas desde edificios.ts
+  parseUbicacionAula,
   getMaxSalonesPorPiso,
   AULAS_MAX_SALONES,
 } from '@/lib/edificios';
@@ -90,6 +92,7 @@ export default function SalasPage() {
     setForm({ nombre: '', ubicacion: '', capacidad: '10', edificioId: '', piso: '', numero: '', descripcion: '' });
     setShowModal(true);
   };
+
   const handleEdit = (sala: Sala) => {
     setEditingSala(sala);
     setForm({
@@ -125,7 +128,7 @@ export default function SalasPage() {
         return;
       }
 
-      // Validación de rango de salones por piso (Aulas 1–4): mínimo 1, máximo según piso
+      //CAMBIO: validar límite de salón usando getMaxSalonesPorPiso centralizado
       const limiteMax = getMaxSalonesPorPiso(form.edificioId, form.piso);
       if (limiteMax !== null) {
         const numSalon = Number(form.numero);
@@ -184,32 +187,31 @@ export default function SalasPage() {
     [edificioSel, form.edificioId, form.piso]
   );
 
-  /** true cuando el número de salón está fuera del rango permitido (< 1 o > límite) */
+  /** true cuando el número de salón excede el rango permitido */
   const salonExcedeLimite =
     maxSalonesPiso !== null &&
     form.numero !== '' &&
     (Number(form.numero) < 1 || Number(form.numero) > maxSalonesPiso);
 
-  /** Para crear: necesita preview válido, capacidad mínima, y no exceder el límite */
+  /** Para crear: necesita preview válido, capacidad mínima y salón dentro del rango */
   const puedeCrear = puedeGuardarCreacion && !salonExcedeLimite;
 
   /**
-   * Validación del formulario de EDICIÓN:
-   * Si la ubicación sigue el patrón "Aulas N, Piso P, Salón XX",
-   * verificar que el número de salón esté en el rango permitido.
+   *Validación del formulario de EDICIÓN usando parseUbicacionAula
+   * Reemplaza el regex inline que estaba duplicado. Ahora usa la función
+   * centralizada de edificios.ts, que garantiza formato y espaciado uniformes.
    */
   const editSalonError = (() => {
     if (!editingSala) return null;
-    const match = form.ubicacion.match(/^(Aulas\s+\d+),\s*Piso\s+(\d+),\s*Sal[oó]n\s+(\d+)$/i);
-    if (!match) return null;
-    const piso = Number(match[2]);
-    const numSalon = Number(match[3]);
-    const limiteMax = AULAS_MAX_SALONES[piso];
+    const parsed = parseUbicacionAula(form.ubicacion);
+    if (!parsed) return null;
+    const limiteMax = AULAS_MAX_SALONES[parsed.piso];
     if (limiteMax === undefined) return null;
-    if (numSalon < 1 || numSalon > limiteMax)
-      return `El piso ${piso} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`;
+    if (parsed.numero < 1 || parsed.numero > limiteMax)
+      return `El piso ${parsed.piso} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`;
     return null;
   })();
+
   function renderFormCrear() {
     return (
       <form onSubmit={handleSubmit}>
@@ -252,7 +254,7 @@ export default function SalasPage() {
               <input
                 className="input-field" type="number" min={1} max={4}
                 placeholder="2" value={form.piso}
-                onChange={(e) => setForm({ ...form, piso: e.target.value })}
+                onChange={(e) => setForm({ ...form, piso: e.target.value, numero: '' })}
                 required
               />
             </div>
@@ -264,10 +266,11 @@ export default function SalasPage() {
                 onChange={(e) => setForm({ ...form, numero: e.target.value.replace(/\D/g, '') })}
                 required
               />
+              {/*helper text dinámico según el piso seleccionado*/}
               <p className="helper-text">
                 {maxSalonesPiso !== null
                   ? `Número del salón (1–${maxSalonesPiso})`
-                  : 'Ej: 01, 05, 12'}
+                  : 'Ej: 01, 05, 08'}
               </p>
             </div>
           </div>
@@ -315,18 +318,19 @@ export default function SalasPage() {
 
         <div style={{ marginBottom: '14px' }}>
           <label className="label">Capacidad (personas) *</label>
+          {/*capacidad como string para evitar el bug "020"*/}
           <input
             className="input-field" type="number" min={2} max={100}
             value={form.capacidad}
             onChange={(e) => setForm({ ...form, capacidad: e.target.value })}
-            onFocus={() => { if (form.capacidad === '0') setForm({ ...form, capacidad: '' }); }}
+            onFocus={() => { if (form.capacidad === '0') setForm((f) => ({ ...f, capacidad: '' })); }}
             placeholder="Ej: 30"
             required
           />
           <p className="helper-text">Entre 2 y 100 personas</p>
         </div>
 
-        {/* Preview */}
+        {/* Preview con indicador de error si el salón excede el límite */}
         <div
           style={{
             padding: '12px 14px', borderRadius: '10px', marginBottom: '16px',
@@ -404,6 +408,7 @@ export default function SalasPage() {
           wrapperClassName="mb-1"
           helperText="Ej: Aulas 1, Piso 2, Salón 05"
         />
+        {/*error de salón usando parseUbicacionAula centralizado*/}
         {editSalonError && (
           <p style={{
             fontSize: '0.75rem', color: 'var(--danger, #e53e3e)',
@@ -433,6 +438,7 @@ export default function SalasPage() {
       </form>
     );
   }
+
   const deshabilitadas = salas.length - disponibles;
 
   return (
