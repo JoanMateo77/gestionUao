@@ -18,6 +18,10 @@ import {
   EDIFICIOS, getEdificio, pisoDeTorreon,
   componerNombre as componerNombreSala,
   componerUbicacion as componerUbicacionSala,
+  //importar funciones centralizadas desde edificios.ts
+  parseUbicacionAula,
+  getMaxSalonesPorPiso,
+  AULAS_MAX_SALONES,
 } from '@/lib/edificios';
 
 interface SalaRecurso {
@@ -48,7 +52,7 @@ export default function SalasPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingSala, setEditingSala] = useState<Sala | null>(null);
   const [form, setForm] = useState({
-    nombre: '', ubicacion: '', capacidad: 10,
+    nombre: '', ubicacion: '', capacidad: '10',
     edificioId: '', piso: '', numero: '', descripcion: '',
   });
   const [saving, setSaving] = useState(false);
@@ -85,15 +89,16 @@ export default function SalasPage() {
 
   const handleCreate = () => {
     setEditingSala(null);
-    setForm({ nombre: '', ubicacion: '', capacidad: 10, edificioId: '', piso: '', numero: '', descripcion: '' });
+    setForm({ nombre: '', ubicacion: '', capacidad: '10', edificioId: '', piso: '', numero: '', descripcion: '' });
     setShowModal(true);
   };
+
   const handleEdit = (sala: Sala) => {
     setEditingSala(sala);
     setForm({
       nombre: sala.nombre,
       ubicacion: sala.ubicacion || '',
-      capacidad: sala.capacidad,
+      capacidad: String(sala.capacidad),
       edificioId: '', piso: '', numero: '', descripcion: '',
     });
     setShowModal(true);
@@ -104,7 +109,7 @@ export default function SalasPage() {
 
     let payload: { nombre: string; ubicacion: string; capacidad: number };
     if (editingSala) {
-      payload = { nombre: form.nombre, ubicacion: form.ubicacion, capacidad: form.capacidad };
+      payload = { nombre: form.nombre, ubicacion: form.ubicacion, capacidad: Number(form.capacidad) };
     } else {
       const nombre = componerNombreSala({
         edificioId: form.edificioId,
@@ -122,7 +127,18 @@ export default function SalasPage() {
         toast.error('Completa todos los campos del edificio');
         return;
       }
-      payload = { nombre, ubicacion, capacidad: form.capacidad };
+
+      //CAMBIO: validar límite de salón usando getMaxSalonesPorPiso centralizado
+      const limiteMax = getMaxSalonesPorPiso(form.edificioId, form.piso);
+      if (limiteMax !== null) {
+        const numSalon = Number(form.numero);
+        if (numSalon < 1 || numSalon > limiteMax) {
+          toast.error(`El piso ${form.piso} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`);
+          return;
+        }
+      }
+
+      payload = { nombre, ubicacion, capacidad: Number(form.capacidad) };
     }
 
     setSaving(true);
@@ -163,7 +179,38 @@ export default function SalasPage() {
   const ubicacionPreview = componerUbicacionSala({
     edificioId: form.edificioId, piso: form.piso, numero: form.numero, descripcion: form.descripcion,
   });
-  const puedeGuardarCreacion = !!(nombrePreview && ubicacionPreview && form.capacidad >= 2);
+  const puedeGuardarCreacion = !!(nombrePreview && ubicacionPreview && Number(form.capacidad) >= 2);
+
+  /** Límite de salones del piso seleccionado (solo Aulas 1–4) */
+  const maxSalonesPiso = useMemo(
+    () => (edificioSel?.tipo === 'AULAS' && form.piso ? getMaxSalonesPorPiso(form.edificioId, form.piso) : null),
+    [edificioSel, form.edificioId, form.piso]
+  );
+
+  /** true cuando el número de salón excede el rango permitido */
+  const salonExcedeLimite =
+    maxSalonesPiso !== null &&
+    form.numero !== '' &&
+    (Number(form.numero) < 1 || Number(form.numero) > maxSalonesPiso);
+
+  /** Para crear: necesita preview válido, capacidad mínima y salón dentro del rango */
+  const puedeCrear = puedeGuardarCreacion && !salonExcedeLimite;
+
+  /**
+   *Validación del formulario de EDICIÓN usando parseUbicacionAula
+   * Reemplaza el regex inline que estaba duplicado. Ahora usa la función
+   * centralizada de edificios.ts, que garantiza formato y espaciado uniformes.
+   */
+  const editSalonError = (() => {
+    if (!editingSala) return null;
+    const parsed = parseUbicacionAula(form.ubicacion);
+    if (!parsed) return null;
+    const limiteMax = AULAS_MAX_SALONES[parsed.piso];
+    if (limiteMax === undefined) return null;
+    if (parsed.numero < 1 || parsed.numero > limiteMax)
+      return `El piso ${parsed.piso} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`;
+    return null;
+  })();
 
   function renderFormCrear() {
     return (
@@ -207,7 +254,7 @@ export default function SalasPage() {
               <input
                 className="input-field" type="number" min={1} max={4}
                 placeholder="2" value={form.piso}
-                onChange={(e) => setForm({ ...form, piso: e.target.value })}
+                onChange={(e) => setForm({ ...form, piso: e.target.value, numero: '' })}
                 required
               />
             </div>
@@ -219,7 +266,12 @@ export default function SalasPage() {
                 onChange={(e) => setForm({ ...form, numero: e.target.value.replace(/\D/g, '') })}
                 required
               />
-              <p className="helper-text">Ej: 01, 05, 12</p>
+              {/*helper text dinámico según el piso seleccionado*/}
+              <p className="helper-text">
+                {maxSalonesPiso !== null
+                  ? `Número del salón (1–${maxSalonesPiso})`
+                  : 'Ej: 01, 05, 08'}
+              </p>
             </div>
           </div>
         )}
@@ -250,10 +302,10 @@ export default function SalasPage() {
               label="Nombre descriptivo del espacio"
               placeholder={
                 edificioSel.tipo === 'CRAI' ? 'Ej: Sala de Estudio 1, Sala CELEE' :
-                edificioSel.tipo === 'ALA_SUR' ? 'Ej: Sala de Juntas Ingeniería' :
-                edificioSel.tipo === 'ALA_NORTE' ? 'Ej: Sala de Conferencias Posgrados' :
-                edificioSel.tipo === 'CENTRAL' ? 'Ej: Auditorio Menor' :
-                'Ej: Salón de Danza'
+                  edificioSel.tipo === 'ALA_SUR' ? 'Ej: Sala de Juntas Ingeniería' :
+                    edificioSel.tipo === 'ALA_NORTE' ? 'Ej: Sala de Conferencias Posgrados' :
+                      edificioSel.tipo === 'CENTRAL' ? 'Ej: Auditorio Menor' :
+                        'Ej: Salón de Danza'
               }
               value={form.descripcion}
               onChange={(e) => setForm({ ...form, descripcion: e.target.value })}
@@ -266,34 +318,63 @@ export default function SalasPage() {
 
         <div style={{ marginBottom: '14px' }}>
           <label className="label">Capacidad (personas) *</label>
+          {/*capacidad como string para evitar el bug "020"*/}
           <input
             className="input-field" type="number" min={2} max={100}
             value={form.capacidad}
-            onChange={(e) => setForm({ ...form, capacidad: Number(e.target.value) })}
+            onChange={(e) => setForm({ ...form, capacidad: e.target.value })}
+            onFocus={() => { if (form.capacidad === '0') setForm((f) => ({ ...f, capacidad: '' })); }}
+            placeholder="Ej: 30"
             required
           />
           <p className="helper-text">Entre 2 y 100 personas</p>
         </div>
 
-        {/* Preview */}
+        {/* Preview con indicador de error si el salón excede el límite */}
         <div
           style={{
             padding: '12px 14px', borderRadius: '10px', marginBottom: '16px',
-            background: puedeGuardarCreacion ? 'var(--success-bg)' : 'var(--bg-input)',
-            border: `1px solid ${puedeGuardarCreacion ? 'var(--success)' : 'var(--border)'}`,
+            background: salonExcedeLimite
+              ? 'var(--danger-bg, #fff0f0)'
+              : puedeGuardarCreacion
+                ? 'var(--success-bg)'
+                : 'var(--bg-input)',
+            border: `1px solid ${salonExcedeLimite
+                ? 'var(--danger, #e53e3e)'
+                : puedeGuardarCreacion
+                  ? 'var(--success)'
+                  : 'var(--border)'
+              }`,
             fontSize: '0.8rem',
           }}
         >
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginBottom: '4px', fontWeight: 600, letterSpacing: '0.04em' }}>
-            SE CREARÁ
-          </div>
-          {puedeGuardarCreacion && nombrePreview && ubicacionPreview ? (
+          {salonExcedeLimite ? (
             <>
+              <div style={{ color: 'var(--danger, #e53e3e)', fontSize: '0.7rem', marginBottom: '4px', fontWeight: 700, letterSpacing: '0.04em' }}>
+                ⚠️ NO SE PUEDE CREAR
+              </div>
+              <div style={{ fontWeight: 600, color: 'var(--danger, #e53e3e)' }}>
+                El piso {form.piso} solo permite hasta {maxSalonesPiso} salones
+              </div>
+              <div style={{ color: 'var(--danger, #e53e3e)', fontSize: '0.75rem', opacity: 0.85 }}>
+                Ingresa un número de salón entre 01 y {String(maxSalonesPiso).padStart(2, '0')}
+              </div>
+            </>
+          ) : puedeGuardarCreacion && nombrePreview && ubicacionPreview ? (
+            <>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginBottom: '4px', fontWeight: 600, letterSpacing: '0.04em' }}>
+                SE CREARÁ
+              </div>
               <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{nombrePreview}</div>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>{ubicacionPreview}</div>
             </>
           ) : (
-            <div style={{ color: 'var(--text-muted)' }}>Completa los campos para ver la vista previa</div>
+            <>
+              <div style={{ color: 'var(--text-muted)', fontSize: '0.7rem', marginBottom: '4px', fontWeight: 600, letterSpacing: '0.04em' }}>
+                VISTA PREVIA
+              </div>
+              <div style={{ color: 'var(--text-muted)' }}>Completa los campos para ver la vista previa</div>
+            </>
           )}
         </div>
 
@@ -301,7 +382,7 @@ export default function SalasPage() {
           <Button type="button" variant="secondary" onClick={() => setShowModal(false)} fullWidth>
             Cancelar
           </Button>
-          <Button type="submit" variant="primary" disabled={saving || !puedeGuardarCreacion} fullWidth>
+          <Button type="submit" variant="primary" disabled={saving || !puedeCrear} fullWidth>
             {saving ? 'Guardando...' : 'Registrar salón'}
           </Button>
         </div>
@@ -324,28 +405,40 @@ export default function SalasPage() {
           label="Ubicación"
           value={form.ubicacion}
           onChange={(e) => setForm({ ...form, ubicacion: e.target.value })}
-          wrapperClassName="mb-3"
+          wrapperClassName="mb-1"
           helperText="Ej: Aulas 1, Piso 2, Salón 05"
         />
+        {/*error de salón usando parseUbicacionAula centralizado*/}
+        {editSalonError && (
+          <p style={{
+            fontSize: '0.75rem', color: 'var(--danger, #e53e3e)',
+            marginBottom: '12px', marginTop: '2px',
+            display: 'flex', alignItems: 'center', gap: '4px',
+          }}>
+            ⚠️ {editSalonError}
+          </p>
+        )}
         <Input
           label="Capacidad (personas)"
           type="number"
           min={2}
           max={100}
           value={form.capacidad}
-          onChange={(e) => setForm({ ...form, capacidad: Number(e.target.value) })}
+          onChange={(e) => setForm({ ...form, capacidad: e.target.value })}
+          placeholder="Ej: 30"
           required
           wrapperClassName="mb-6"
         />
         <div style={{ display: 'flex', gap: '12px' }}>
           <Button type="button" variant="secondary" onClick={() => setShowModal(false)} fullWidth>Cancelar</Button>
-          <Button type="submit" variant="primary" disabled={saving} fullWidth>
+          <Button type="submit" variant="primary" disabled={saving || !!editSalonError} fullWidth>
             {saving ? 'Guardando...' : 'Actualizar'}
           </Button>
         </div>
       </form>
     );
   }
+
   const deshabilitadas = salas.length - disponibles;
 
   return (

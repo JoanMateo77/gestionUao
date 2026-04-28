@@ -22,22 +22,80 @@ export interface Edificio {
 }
 
 export const EDIFICIOS: Edificio[] = [
-  { id: 'AULAS_1',   label: 'Aulas 1', tipo: 'AULAS' },
-  { id: 'AULAS_2',   label: 'Aulas 2', tipo: 'AULAS' },
-  { id: 'AULAS_3',   label: 'Aulas 3', tipo: 'AULAS' },
-  { id: 'AULAS_4',   label: 'Aulas 4', tipo: 'AULAS' },
+  { id: 'AULAS_1', label: 'Aulas 1', tipo: 'AULAS' },
+  { id: 'AULAS_2', label: 'Aulas 2', tipo: 'AULAS' },
+  { id: 'AULAS_3', label: 'Aulas 3', tipo: 'AULAS' },
+  { id: 'AULAS_4', label: 'Aulas 4', tipo: 'AULAS' },
   { id: 'TORREON_0', label: 'Torreón 0 (semi-subterráneo)', tipo: 'TORREON' },
   { id: 'TORREON_1', label: 'Torreón 1', tipo: 'TORREON' },
   { id: 'TORREON_2', label: 'Torreón 2', tipo: 'TORREON' },
   { id: 'TORREON_3', label: 'Torreón 3', tipo: 'TORREON' },
   { id: 'TORREON_4', label: 'Torreón 4', tipo: 'TORREON' },
-  { id: 'CRAI',      label: 'CRAI (biblioteca)', tipo: 'CRAI' },
-  { id: 'ALA_SUR',   label: 'Ala Sur', tipo: 'ALA_SUR' },
+  { id: 'CRAI', label: 'CRAI (biblioteca)', tipo: 'CRAI' },
+  { id: 'ALA_SUR', label: 'Ala Sur', tipo: 'ALA_SUR' },
   // Ala Norte: edificio inventado para cubrir casos de posgrado e investigación (no está en informacionUAO.txt)
   { id: 'ALA_NORTE', label: 'Ala Norte', tipo: 'ALA_NORTE' },
-  { id: 'CENTRAL',   label: 'Edificio Central', tipo: 'CENTRAL' },
+  { id: 'CENTRAL', label: 'Edificio Central', tipo: 'CENTRAL' },
   { id: 'BIENESTAR', label: 'Edificio de Bienestar', tipo: 'BIENESTAR' },
 ];
+
+/**
+ * Máximo número de salón permitido por piso en edificios tipo AULAS.
+ * - Pisos 1, 2 y 3: salones del 01 al 08.
+ * - Piso 4:         salones del 01 al 12.
+ *
+ * Ejemplo: piso 2 → salones del 01 al 08 | piso 4 → salones del 01 al 12.
+ */
+export const AULAS_MAX_SALONES: Record<number, number> = {
+  1: 8,
+  2: 8,
+  3: 8,
+  4: 12,
+};
+
+/**
+ * Retorna el máximo número de salón permitido para un edificio y piso dados.
+ * Solo aplica a edificios tipo AULAS. Retorna null para otros tipos.
+ */
+export function getMaxSalonesPorPiso(edificioId: string, piso: string): number | null {
+  const edificio = getEdificio(edificioId);
+  if (!edificio || edificio.tipo !== 'AULAS') return null;
+  const pisoNum = Number(piso);
+  return AULAS_MAX_SALONES[pisoNum] ?? null;
+}
+
+/**
+ * Parsea una ubicación del formato "Aulas N, Piso P, Salón SS" y retorna
+ * sus partes. Retorna null si el formato no coincide.
+ */
+
+export function parseUbicacionAula(ubicacion: string): {
+  edificioLabel: string; // "Aulas 3"
+  piso: number;          // 2
+  numero: number;        // 5
+} | null {
+  const match = ubicacion.match(/^(Aulas\s+\d+),\s*Piso\s+(\d+),\s*Sal[oó]n\s+(\d+)$/i);
+  if (!match) return null;
+  return {
+    edificioLabel: match[1].trim(),
+    piso: Number(match[2]),
+    numero: Number(match[3]),
+  };
+}
+
+/**
+ * Verifica que una ubicación corresponde a un Torreón válido de la UAO.
+ * Los Torreones son espacios únicos por piso — no tienen número de salón.
+ * Retorna el número del torreón (0–4) o null si el formato no coincide.
+ */
+export function parseTorreon(ubicacion: string): number | null {
+  const match = ubicacion.match(/^Torre[oó]n\s+(\d+),\s*Piso\s+\d+$/i);
+  if (!match) return null;
+  const num = Number(match[1]);
+  // Solo existen Torreones 0, 1, 2, 3 y 4
+  if (num < 0 || num > 4) return null;
+  return num;
+}
 
 /** Lista de nombres de edificio para filtros en el catálogo (match sobre ubicacion). */
 export const EDIFICIOS_UAO: string[] = EDIFICIOS.map((e) => {
@@ -84,9 +142,9 @@ export function componerNombre(params: {
       if (!params.descripcion) return null;
       const prefijo =
         edificio.tipo === 'CRAI' ? 'CRAI' :
-        edificio.tipo === 'ALA_SUR' ? 'Ala Sur' :
-        edificio.tipo === 'ALA_NORTE' ? 'Ala Norte' :
-        edificio.tipo === 'CENTRAL' ? 'Central' : 'Bienestar';
+          edificio.tipo === 'ALA_SUR' ? 'Ala Sur' :
+            edificio.tipo === 'ALA_NORTE' ? 'Ala Norte' :
+              edificio.tipo === 'CENTRAL' ? 'Central' : 'Bienestar';
       return `${prefijo} · ${params.descripcion.trim()}`;
     }
   }
