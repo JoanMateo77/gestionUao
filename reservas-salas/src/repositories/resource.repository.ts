@@ -26,9 +26,18 @@ export const resourceRepository = {
   },
 
   /** Agregar recurso a sala */
-  async addToSala(salaId: number, recursoId: number) {
+  async addToSala(salaId: number, recursoId: number, cantidad: number) {
     return prisma.salaRecurso.create({
-      data: { salaId, recursoId },
+      data: { salaId, recursoId, cantidad },
+      include: { recurso: true },
+    });
+  },
+
+  /** Actualizar cantidad de un recurso asignado */
+  async updateCantidad(id: number, cantidad: number) {
+    return prisma.salaRecurso.update({
+      where: { id },
+      data: { cantidad },
       include: { recurso: true },
     });
   },

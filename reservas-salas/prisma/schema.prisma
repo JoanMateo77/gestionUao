@@ -111,11 +111,12 @@ model Sala {
 }
 
 model RecursoTecnologico {
-  id          Int              @id @default(autoincrement())
-  nombre      String           @unique @db.VarChar(100)
-  descripcion String?          @db.VarChar(255)
-  categoria   CategoriaRecurso @default(COMPUTO)
-  icono       String           @default("Box") @db.VarChar(50)
+  id              Int              @id @default(autoincrement())
+  nombre          String           @unique @db.VarChar(100)
+  descripcion     String?          @db.VarChar(255)
+  categoria       CategoriaRecurso @default(COMPUTO)
+  icono           String           @default("Box") @db.VarChar(50)
+  cantidadMaxima  Int              @default(1) @map("cantidad_maxima")
 
   // Relaciones inversas
   salaRecursos SalaRecurso[]
@@ -125,7 +126,8 @@ model RecursoTecnologico {
 }
 
 model SalaRecurso {
-  id Int @id @default(autoincrement())
+  id       Int @id @default(autoincrement())
+  cantidad Int @default(1)
 
   // FKs
   salaId    Int                @map("sala_id")
