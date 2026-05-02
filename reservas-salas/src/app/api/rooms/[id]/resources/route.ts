@@ -37,12 +37,13 @@ export async function POST(
       return NextResponse.json({ error: 'Sin permiso' }, { status: 403 });
     }
 
-    const { recursoId } = await req.json();
+    const { recursoId, cantidad } = await req.json();
     const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
 
     const assignment = await resourceService.addToSala(
       Number(params.id),
       recursoId,
+      Number(cantidad) || 1,
       session.user.facultadId,
       session.user.id,
       ip

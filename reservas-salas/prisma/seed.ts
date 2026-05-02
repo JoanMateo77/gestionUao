@@ -12,6 +12,7 @@ type RecursoSeed = {
   descripcion: string;
   categoria: CategoriaRecurso;
   icono: string;
+  cantidadMaxima: number;
 };
 
 type SalaSeed = {
@@ -31,21 +32,21 @@ const FACULTADES = [
 ] as const;
 
 const RECURSOS: RecursoSeed[] = [
-  { nombre: 'Videoproyector', descripcion: 'Proyector de techo o portátil', categoria: 'PROYECCION', icono: 'Projector' },
-  { nombre: 'Televisor', descripcion: 'Pantalla plana con soporte fijo o móvil', categoria: 'PROYECCION', icono: 'Tv' },
-  { nombre: 'Pantalla de proyección', descripcion: 'Pantalla tensada o retráctil', categoria: 'PROYECCION', icono: 'Monitor' },
-  { nombre: 'Computador', descripcion: 'PC de escritorio para cátedra', categoria: 'COMPUTO', icono: 'Computer' },
-  { nombre: 'Cámara web', descripcion: 'Para sesiones híbridas', categoria: 'COMPUTO', icono: 'Webcam' },
-  { nombre: 'WiFi', descripcion: 'Red institucional UAO', categoria: 'CONECTIVIDAD', icono: 'Wifi' },
-  { nombre: 'Cable HDMI', descripcion: 'Para conectar portátiles', categoria: 'CONECTIVIDAD', icono: 'Cable' },
-  { nombre: 'Cable VGA', descripcion: 'Compatibilidad con equipos antiguos', categoria: 'CONECTIVIDAD', icono: 'Cable' },
-  { nombre: 'Sistema de audio', descripcion: 'Parlantes integrados o externos', categoria: 'AUDIO', icono: 'Volume2' },
-  { nombre: 'Micrófono', descripcion: 'Inalámbrico o alámbrico', categoria: 'AUDIO', icono: 'Mic' },
-  { nombre: 'Tablero acrílico', descripcion: 'Tablero blanco tradicional', categoria: 'ESCRITURA', icono: 'PenLine' },
-  { nombre: 'Tablero de vidrio', descripcion: 'Tablero de vidrio borrable', categoria: 'ESCRITURA', icono: 'Square' },
-  { nombre: 'Aire acondicionado', descripcion: 'Climatización', categoria: 'CONFORT', icono: 'Snowflake' },
-  { nombre: 'Cortinas blackout', descripcion: 'Para proyecciones con luz reducida', categoria: 'CONFORT', icono: 'Blinds' },
-  { nombre: 'Acceso movilidad reducida', descripcion: 'Rampa o acceso adaptado', categoria: 'ACCESIBILIDAD', icono: 'Accessibility' },
+  { nombre: 'Videoproyector',           descripcion: 'Proyector de techo o portátil',             categoria: 'PROYECCION',    icono: 'Projector',    cantidadMaxima: 1  },
+  { nombre: 'Televisor',                descripcion: 'Pantalla plana con soporte fijo o móvil',    categoria: 'PROYECCION',    icono: 'Tv',           cantidadMaxima: 1  },
+  { nombre: 'Pantalla de proyección',   descripcion: 'Pantalla tensada o retráctil',               categoria: 'PROYECCION',    icono: 'Monitor',      cantidadMaxima: 1  },
+  { nombre: 'Computador',               descripcion: 'PC de escritorio para cátedra',              categoria: 'COMPUTO',       icono: 'Computer',     cantidadMaxima: 30 },
+  { nombre: 'Cámara web',               descripcion: 'Para sesiones híbridas',                     categoria: 'COMPUTO',       icono: 'Webcam',       cantidadMaxima: 5  },
+  { nombre: 'WiFi',                     descripcion: 'Red institucional UAO',                       categoria: 'CONECTIVIDAD',  icono: 'Wifi',         cantidadMaxima: 1  },
+  { nombre: 'Cable HDMI',               descripcion: 'Para conectar portátiles',                   categoria: 'CONECTIVIDAD',  icono: 'Cable',        cantidadMaxima: 10 },
+  { nombre: 'Cable VGA',                descripcion: 'Compatibilidad con equipos antiguos',        categoria: 'CONECTIVIDAD',  icono: 'Cable',        cantidadMaxima: 10 },
+  { nombre: 'Sistema de audio',         descripcion: 'Parlantes integrados o externos',            categoria: 'AUDIO',         icono: 'Volume2',      cantidadMaxima: 30 },
+  { nombre: 'Micrófono',                descripcion: 'Inalámbrico o alámbrico',                    categoria: 'AUDIO',         icono: 'Mic',          cantidadMaxima: 30 },
+  { nombre: 'Tablero acrílico',         descripcion: 'Tablero blanco tradicional',                 categoria: 'ESCRITURA',     icono: 'PenLine',      cantidadMaxima: 2  },
+  { nombre: 'Tablero de vidrio',        descripcion: 'Tablero de vidrio borrable',                 categoria: 'ESCRITURA',     icono: 'Square',       cantidadMaxima: 20 },
+  { nombre: 'Aire acondicionado',       descripcion: 'Climatización',                              categoria: 'CONFORT',       icono: 'Snowflake',    cantidadMaxima: 1  },
+  { nombre: 'Cortinas blackout',        descripcion: 'Para proyecciones con luz reducida',         categoria: 'CONFORT',       icono: 'Blinds',       cantidadMaxima: 4  },
+  { nombre: 'Acceso movilidad reducida',descripcion: 'Rampa o acceso adaptado',                    categoria: 'ACCESIBILIDAD', icono: 'Accessibility',cantidadMaxima: 1  },
 ];
 
 const MATRIZ_RECURSOS = {
@@ -231,7 +232,7 @@ async function main() {
   for (const r of RECURSOS) {
     const rec = await prisma.recursoTecnologico.upsert({
       where: { nombre: r.nombre },
-      update: { descripcion: r.descripcion, categoria: r.categoria, icono: r.icono },
+      update: { descripcion: r.descripcion, categoria: r.categoria, icono: r.icono, cantidadMaxima: r.cantidadMaxima },
       create: r,
     });
     recursoMap.set(r.nombre, rec.id);
