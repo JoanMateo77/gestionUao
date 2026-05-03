@@ -1,0 +1,81 @@
+Ajusto entonces, los torreones son por piso:
+
+## Edificios de Aulas (Aulas 1, 2, 3 y 4)
+
+Son cuatro edificios separados llamados literalmente así: "Aulas 1", "Aulas 2", "Aulas 3" y "Aulas 4". Cada uno es un edificio rectangular de varios pisos (típicamente 3 o 4 pisos) dedicado exclusivamente a salones de clase.
+
+**Cómo funciona la numeración de salones**: cada salón tiene un número de 3 dígitos donde el primer dígito indica el piso y los dos siguientes el número del salón en ese piso.
+
+- Salón **101** → Piso 1, salón número 01
+- Salón **205** → Piso 2, salón número 05
+- Salón **312** → Piso 3, salón número 12
+
+Entonces si alguien te dice "nos vemos en Aulas 2 - 305", significa: edificio Aulas 2, piso 3, salón 05.
+
+Son salones tradicionales de clase magistral: filas de sillas universitarias con paleta, un tablero acrílico al frente, un videoproyector colgado del techo, un escritorio para el docente y aire acondicionado. Todos los edificios de Aulas están climatizados desde hace pocos años. La capacidad típica va entre 25 y 45 estudiantes por salón.
+
+## Los Torreones
+
+Los Torreones funcionan distinto a los edificios de Aulas: **hay un Torreón por piso**, como si fueran salones circulares grandes distribuidos uno por nivel del campus. La numeración del torreón corresponde al piso donde está:
+
+- **Torreón 0** → está en el nivel semi-subterráneo, se accede bajando unas escaleras que están al lado del acceso al Torreón 1
+- **Torreón 1** → piso 1
+- **Torreón 2** → piso 2
+- **Torreón 3** → piso 3
+- **Torreón 4** → piso 4
+
+Por su forma circular (por eso se llaman "torreones", como torres), son salones únicos por nivel en lugar de tener varios salones por piso como los edificios de Aulas. La gente simplemente dice "tengo clase en el Torreón 2" o "nos vemos en el Torreón 0" y ya se sabe exactamente a qué espacio se refieren, no hay que especificar número de salón porque solo hay uno por piso.
+
+Funcionalmente son salones de clase normales (sillas, tablero, videoproyector, aire acondicionado), pero suelen ser un poco más amplios que los salones rectangulares de Aulas y tienen esa disposición circular que los hace distintivos.
+
+## El CRAI (la biblioteca)
+
+El CRAI (Centro de Recursos para el Aprendizaje y la Investigación) es un edificio aparte, también separado de los demás, y tiene **3 pisos**. No es solo biblioteca tradicional: cada piso tiene espacios distintos que sirven para cosas diferentes.
+
+### Piso 1 del CRAI
+Es el piso de entrada y el más "operativo". Aquí están:
+- **Circulación y préstamo**: el mostrador donde pides libros prestados o los devuelves
+- **Sala de lectura lúdica**: un espacio con sillas reclinables y sistema de audio, para lectura relajada
+- **Oficinas administrativas** del CRAI: dirección, secretaría, oficina de normas técnicas (para asesoría en trabajos de grado con normas Icontec)
+- **Módulo de asesoría para trabajos de grado**
+
+### Piso 2 del CRAI
+Este es el piso más "reservable" para estudiantes. Tiene:
+- **5 salas de estudio grupal**: salones pequeños cerrados para 5 a 8 personas, cada uno con un televisor grande, conexión HDMI/VGA para portátiles y conexión para audífonos. Son las más populares para trabajos en grupo
+- **Sala de capacitación**: para 25 personas, con videoproyector, audio y computador. Sirve para que el CRAI dicte talleres
+- **Sala CELEE** (Centro de Escritura) y **Sala Domus Magister**: dos salas pequeñas donde te asesoran con la redacción de ensayos, informes o trabajos
+- **Cubículos de estudio individual**: espacios pequeños de una sola persona para estudio concentrado
+- **Zonas de lectura** abiertas con mesas largas
+
+### Piso 3 del CRAI
+Más silencioso, enfocado en estudio profundo:
+- **Más cubículos individuales**
+- **Salas de lectura** adicionales
+- En total, entre los 3 pisos hay **7 salas de lectura** distribuidas
+
+## Ala Sur y Edificio Central
+
+El **Edificio Central** es donde están principalmente las oficinas administrativas: decanaturas, rectoría, auditorios grandes. También tiene algunos salones en pisos superiores pero son más para eventos o clases especiales.
+
+El **Ala Sur** es un edificio con 4 pisos que funciona más como "edificio de oficinas":
+- Piso 1: entrada al CRAI por un lado
+- Pisos 2 y 3: salas de juntas de facultades, oficinas de profesores
+- Piso 4: Dirección de Comunicaciones y otras oficinas
+
+Las salas de juntas de las facultades (más formales, con mesa grande, sillas ergonómicas, televisor o proyector) suelen estar en Ala Sur.
+
+## Edificio de Bienestar
+
+Otro edificio separado, dedicado al área de bienestar universitario. El piso 2 tiene los **salones de arte y cultura**: espacios para actividades como danza, música, teatro. No son salones de clase académica sino talleres.
+
+## Cómo se ve todo junto
+
+Imagina el campus como varios edificios separados conectados por pasillos techados y zonas verdes:
+
+- Los 4 edificios de **Aulas** (1, 2, 3, 4) agrupados cerca, son donde pasas la mayoría de las clases con múltiples salones por piso
+- Los **Torreones** son espacios únicos por piso, circulares, distribuidos por los distintos niveles del campus
+- El **CRAI** es un edificio solo con 3 pisos de biblioteca/estudio
+- El **Ala Sur** y el **Edificio Central** tienen el rollo administrativo y salas de juntas
+- El **Edificio de Bienestar** es para cultura y deporte
+
+Cuando alguien reserva una "sala", puede ser en cualquiera de estos edificios dependiendo del propósito: un docente usa salones de Aulas o Torreones para clases, estudiantes reservan salas del CRAI piso 2 para trabajos en grupo, secretarias reservan salas de juntas del Ala Sur para reuniones formales.

@@ -2,17 +2,36 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  Plus, CalendarDays, XCircle, Clock, MapPin, User, X, Edit3, Filter,
+  Plus, CalendarDays, XCircle, Clock, MapPin, User, Edit3, Filter, Users,
 } from 'lucide-react';
-import Link from 'next/link';
+import {
+  ConfirmDialog, SkeletonCard, EmptyState, Button, Input, Modal, Card,
+  ResourceChip, AvailabilityTimeline,
+} from '@/components/ui';
+
+interface SalaRecurso {
+  id: number;
+  recurso: { id: number; nombre: string; categoria: string; icono: string };
+}
 
 interface Sala {
   id: number;
   nombre: string;
   ubicacion: string | null;
+  capacidad?: number;
   habilitada?: boolean;
+  salaRecursos?: SalaRecurso[];
+}
+
+interface Ocupado {
+  id: number;
+  horaInicio: string;
+  horaFin: string;
+  motivo?: string;
+  usuarioNombre?: string;
 }
 
 interface Reserva {
@@ -63,6 +82,8 @@ function isoToDateInput(isoDate: string): string {
 export default function ReservasPage() {
   const { data: session } = useSession();
   const isSecretaria = session?.user?.rol === 'SECRETARIA';
+  const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [data, setData] = useState<ApiResponse | null>(null);
   const [salas, setSalas] = useState<Sala[]>([]);
@@ -70,6 +91,10 @@ export default function ReservasPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('');
   const [page, setPage] = useState(1);
+
+  // Disponibilidad del día (timeline)
+  const [ocupados, setOcupados] = useState<Ocupado[]>([]);
+  const [loadingAvail, setLoadingAvail] = useState(false);
 
   // Filtros SECRETARIA (HU-13)
   const [filtroSalaId, setFiltroSalaId] = useState<string>('');
@@ -86,6 +111,10 @@ export default function ReservasPage() {
   const [adjusting, setAdjusting] = useState<Reserva | null>(null);
   const [adjustForm, setAdjustForm] = useState({ salaId: 0, fecha: '', horaInicio: '', horaFin: '', motivo: '' });
   const [savingAdjust, setSavingAdjust] = useState(false);
+
+  // Confirmación de cancelación
+  const [cancelId, setCancelId] = useState<number | null>(null);
+  const [cancelLoading, setCancelLoading] = useState(false);
 
   const buildQuery = useCallback(() => {
     const q = new URLSearchParams({ page: String(page), limit: '20' });
@@ -116,6 +145,42 @@ export default function ReservasPage() {
   useEffect(() => { fetchReservas(); }, [fetchReservas]);
   useEffect(() => { fetchSalas(); }, [fetchSalas]);
 
+  // Preselección desde query (?salaId=X&new=1) al entrar desde el catálogo
+  useEffect(() => {
+    const sid = searchParams.get('salaId');
+    const isNew = searchParams.get('new') === '1';
+    if (sid && isNew) {
+      const salaId = Number(sid);
+      if (Number.isFinite(salaId)) {
+        setForm({ salaId, fecha: '', horaInicio: '', horaFin: '', motivo: '' });
+        setShowModal(true);
+        // Limpiar query para evitar reabrir en navegación
+        router.replace('/reservas', { scroll: false });
+      }
+    }
+  }, [searchParams, router]);
+
+  // Cargar disponibilidad de la sala/fecha seleccionadas
+  const fetchAvailability = useCallback(async (salaId: number, fecha: string) => {
+    if (!salaId || !fecha) { setOcupados([]); return; }
+    setLoadingAvail(true);
+    try {
+      const res = await fetch(`/api/rooms/${salaId}/availability?fecha=${fecha}`);
+      const json = await res.json();
+      if (res.ok) setOcupados(json.ocupados || []);
+      else setOcupados([]);
+    } catch { setOcupados([]); }
+    finally { setLoadingAvail(false); }
+  }, []);
+
+  useEffect(() => {
+    if (showModal && form.salaId && form.fecha) {
+      fetchAvailability(Number(form.salaId), form.fecha);
+    } else {
+      setOcupados([]);
+    }
+  }, [showModal, form.salaId, form.fecha, fetchAvailability]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault(); setSaving(true);
     try {
@@ -134,14 +199,19 @@ export default function ReservasPage() {
     finally { setSaving(false); }
   };
 
-  const handleCancel = async (id: number) => {
-    if (!confirm('¿Cancelar esta reserva?')) return;
+  const handleCancel = (id: number) => setCancelId(id);
+
+  const confirmCancel = async () => {
+    if (cancelId == null) return;
+    setCancelLoading(true);
     try {
-      const res = await fetch(`/api/reservations/${id}/cancel`, { method: 'PATCH' });
+      const res = await fetch(`/api/reservations/${cancelId}/cancel`, { method: 'PATCH' });
       const result = await res.json();
       if (!res.ok) { toast.error(result.error || 'Error al cancelar'); return; }
       toast.success('Reserva cancelada'); fetchReservas();
+      setCancelId(null);
     } catch { toast.error('Error'); }
+    finally { setCancelLoading(false); }
   };
 
   const openAdjust = (r: Reserva) => {
@@ -183,6 +253,7 @@ export default function ReservasPage() {
   const activas = reservas.filter((r) => r.estado === 'CONFIRMADA').length;
   const historial = reservas.filter((r) => r.estado === 'CANCELADA').length;
   const hasActiveFilters = filtroSalaId || filtroFechaInicio || filtroFechaFin;
+  const salaSel = salas.find((s) => s.id === Number(form.salaId));
 
   return (
     <div className="fade-in">
@@ -195,33 +266,36 @@ export default function ReservasPage() {
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           {isSecretaria && (
-            <button className="btn-secondary" onClick={() => setShowFilters(!showFilters)}
-              style={{ display: 'flex', alignItems: 'center', gap: '4px', position: 'relative' }}>
-              <Filter size={15} /> Filtros
+            <Button
+              variant="secondary"
+              onClick={() => setShowFilters(!showFilters)}
+              leftIcon={<Filter size={15} />}
+              className="relative"
+            >
+              Filtros
               {hasActiveFilters && (
                 <span style={{
                   position: 'absolute', top: '-6px', right: '-6px',
                   width: '14px', height: '14px', borderRadius: '50%',
-                  background: 'var(--primary)', fontSize: '0.6rem', color: '#fff',
+                  background: 'var(--primary)', fontSize: '0.6rem', color: 'var(--primary-fg)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>!</span>
               )}
-            </button>
+            </Button>
           )}
-          <Link href="/salas" className="btn-secondary"
-            style={{ textDecoration: 'none', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-            Explorar Salas
-          </Link>
-          <button className="btn-primary" onClick={() => { setForm({ salaId: 0, fecha: '', horaInicio: '', horaFin: '', motivo: '' }); setShowModal(true); }}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Plus size={16} /> Nueva Reserva
-          </button>
+          <Button
+            variant="primary"
+            onClick={() => { setForm({ salaId: 0, fecha: '', horaInicio: '', horaFin: '', motivo: '' }); setShowModal(true); }}
+            leftIcon={<Plus size={16} />}
+          >
+            Nueva Reserva
+          </Button>
         </div>
       </div>
 
       {/* Panel de filtros SECRETARIA (HU-13) */}
       {isSecretaria && showFilters && (
-        <div className="card" style={{ padding: '16px', marginBottom: '20px' }}>
+        <Card padding="md" className="mb-5">
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'end' }}>
             <div>
               <label className="label" style={{ fontSize: '0.75rem' }}>Sala</label>
@@ -232,23 +306,25 @@ export default function ReservasPage() {
                 ))}
               </select>
             </div>
-            <div>
-              <label className="label" style={{ fontSize: '0.75rem' }}>Desde</label>
-              <input className="input-field" type="date" value={filtroFechaInicio}
-                onChange={(e) => { setFiltroFechaInicio(e.target.value); setPage(1); }} />
-            </div>
-            <div>
-              <label className="label" style={{ fontSize: '0.75rem' }}>Hasta</label>
-              <input className="input-field" type="date" value={filtroFechaFin}
-                onChange={(e) => { setFiltroFechaFin(e.target.value); setPage(1); }} />
-            </div>
+            <Input
+              label="Desde"
+              type="date"
+              value={filtroFechaInicio}
+              onChange={(e) => { setFiltroFechaInicio(e.target.value); setPage(1); }}
+            />
+            <Input
+              label="Hasta"
+              type="date"
+              value={filtroFechaFin}
+              onChange={(e) => { setFiltroFechaFin(e.target.value); setPage(1); }}
+            />
             {hasActiveFilters && (
-              <button className="btn-secondary" onClick={clearFilters} style={{ fontSize: '0.8rem' }}>
+              <Button variant="secondary" onClick={clearFilters}>
                 Limpiar filtros
-              </button>
+              </Button>
             )}
           </div>
-        </div>
+        </Card>
       )}
 
       <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '20px' }}>
@@ -278,36 +354,41 @@ export default function ReservasPage() {
           { value: 'CONFIRMADA', label: 'Activas' },
           { value: 'CANCELADA', label: 'Historial' },
         ].map((f) => (
-          <button key={f.value}
-            className={`btn-secondary ${filter === f.value ? 'active' : ''}`}
-            style={{
-              padding: '8px 16px', fontSize: '0.8rem',
-              background: filter === f.value ? 'var(--primary)' : 'transparent',
-              color: filter === f.value ? '#fff' : 'var(--text-secondary)',
-              borderColor: filter === f.value ? 'var(--primary)' : 'var(--border)',
-            }}
-            onClick={() => { setFilter(f.value); setPage(1); }}>
+          <Button
+            key={f.value}
+            variant={filter === f.value ? 'primary' : 'secondary'}
+            size="sm"
+            onClick={() => { setFilter(f.value); setPage(1); }}
+          >
             {f.label}
-          </button>
+          </Button>
         ))}
       </div>
 
       {/* Reservas */}
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><div className="spinner" /></div>
-      ) : reservas.length === 0 ? (
-        <div className="empty-state">
-          <CalendarDays size={40} />
-          <p style={{ marginTop: '8px' }}>No se encontraron reservas</p>
-          <button className="btn-primary" onClick={() => setShowModal(true)}
-            style={{ marginTop: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Plus size={16} /> Crear reserva
-          </button>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
+      ) : reservas.length === 0 ? (
+        <EmptyState
+          icon={<CalendarDays size={40} />}
+          title="No se encontraron reservas"
+          description="Crea una nueva reserva para comenzar a gestionar tus salas."
+          action={
+            <Button
+              variant="primary"
+              onClick={() => setShowModal(true)}
+              leftIcon={<Plus size={16} />}
+            >
+              Crear reserva
+            </Button>
+          }
+        />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {reservas.map((r) => (
-            <div key={r.id} className="card" style={{ padding: '20px' }}>
+            <Card key={r.id} padding="lg">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                 <div>
                   <h3 style={{ fontWeight: 600, fontSize: '0.95rem' }}>{r.sala.nombre}</h3>
@@ -342,20 +423,30 @@ export default function ReservasPage() {
 
               <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
                 {r.estado === 'CONFIRMADA' && isSecretaria && (
-                  <button className="btn-secondary" onClick={() => openAdjust(r)}
-                    style={{ flex: 1, padding: '8px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                    <Edit3 size={13} /> Ajustar
-                  </button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => openAdjust(r)}
+                    leftIcon={<Edit3 size={13} />}
+                    fullWidth
+                  >
+                    Ajustar
+                  </Button>
                 )}
                 {r.estado === 'CONFIRMADA' &&
                   (isSecretaria || r.usuario.id === session?.user?.id) && (
-                    <button className="btn-danger" onClick={() => handleCancel(r.id)}
-                      style={{ flex: isSecretaria ? 'unset' : 1, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem' }}>
-                      <XCircle size={13} /> Cancelar
-                    </button>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => handleCancel(r.id)}
+                      leftIcon={<XCircle size={13} />}
+                      fullWidth={!isSecretaria}
+                    >
+                      Cancelar
+                    </Button>
                   )}
               </div>
-            </div>
+            </Card>
           ))}
         </div>
       )}
@@ -363,147 +454,222 @@ export default function ReservasPage() {
       {/* Pagination */}
       {data && data.totalPages > 1 && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '24px' }}>
-          <button className="btn-secondary" disabled={page <= 1} onClick={() => setPage(page - 1)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>Anterior</button>
+          <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>Anterior</Button>
           <span style={{ display: 'flex', alignItems: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Página {data.page} de {data.totalPages}</span>
-          <button className="btn-secondary" disabled={page >= data.totalPages} onClick={() => setPage(page + 1)} style={{ padding: '8px 16px', fontSize: '0.8rem' }}>Siguiente</button>
+          <Button variant="secondary" size="sm" disabled={page >= data.totalPages} onClick={() => setPage(page + 1)}>Siguiente</Button>
         </div>
       )}
 
       {/* ─── Modal: Crear Reserva ─── */}
-      {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>Crear Reserva</h2>
-              <button onClick={() => setShowModal(false)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '20px' }}>
-              Reserva de sala de estudio
-            </p>
-
-            <div style={{
-              padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
-              background: 'var(--info-bg)', border: '1px solid rgba(37,99,235,0.15)',
-              fontSize: '0.75rem', color: 'var(--info)',
-            }}>
-              <strong>📋 Política de Reservas</strong>
-              <ul style={{ margin: '6px 0 0 16px', lineHeight: 1.7 }}>
-                <li>Horario: 7:00 AM — 9:30 PM</li>
-                <li>No se permiten reservas superpuestas</li>
-                <li>No se permiten reservas en fechas pasadas</li>
-                <li>No se permiten reservas los domingos</li>
-              </ul>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Sala *</label>
-                <select className="input-field" value={form.salaId}
-                  onChange={(e) => setForm({ ...form, salaId: Number(e.target.value) })} required>
-                  <option value={0}>Seleccione una sala</option>
-                  {salas.map((s) => (
-                    <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Fecha *</label>
-                <input className="input-field" type="date" value={form.fecha}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setForm({ ...form, fecha: e.target.value })} required />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-                <div>
-                  <label className="label">Hora de Inicio *</label>
-                  <input className="input-field" type="time" value={form.horaInicio}
-                    min="07:00" max="21:00"
-                    onChange={(e) => setForm({ ...form, horaInicio: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="label">Hora de Fin *</label>
-                  <input className="input-field" type="time" value={form.horaFin}
-                    min="07:30" max="21:30"
-                    onChange={(e) => setForm({ ...form, horaFin: e.target.value })} required />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '24px' }}>
-                <label className="label">Motivo</label>
-                <input className="input-field" placeholder="Describe brevemente el motivo de tu reserva"
-                  value={form.motivo}
-                  onChange={(e) => setForm({ ...form, motivo: e.target.value })} />
-              </div>
-
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" className="btn-secondary" onClick={() => setShowModal(false)} style={{ flex: 1 }}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={saving} style={{ flex: 1 }}>{saving ? 'Creando...' : 'Confirmar Reserva'}</button>
-              </div>
-            </form>
-          </div>
+      <Modal
+        open={showModal}
+        onClose={() => setShowModal(false)}
+        title="Crear Reserva"
+        description="Reserva de sala de estudio"
+        size="lg"
+      >
+        <div style={{
+          padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
+          background: 'var(--info-bg)', border: '1px solid rgba(37,99,235,0.15)',
+          fontSize: '0.75rem', color: 'var(--info)',
+        }}>
+          <strong>📋 Política de Reservas</strong>
+          <ul style={{ margin: '6px 0 0 16px', lineHeight: 1.7 }}>
+            <li>Horario: 7:00 AM — 9:30 PM</li>
+            <li>No se permiten reservas superpuestas</li>
+            <li>No se permiten reservas en fechas pasadas</li>
+            <li>No se permiten reservas los domingos</li>
+          </ul>
         </div>
-      )}
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: '14px' }}>
+            <label className="label">Sala *</label>
+            <select className="input-field" value={form.salaId}
+              onChange={(e) => setForm({ ...form, salaId: Number(e.target.value) })} required>
+              <option value={0}>Seleccione una sala</option>
+              {salas.map((s) => (
+                <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Panel de contexto de la sala seleccionada */}
+          {salaSel && (
+            <div
+              style={{
+                padding: '12px 14px', borderRadius: '10px', marginBottom: '14px',
+                background: 'var(--bg-input)', border: '1px solid var(--border)',
+              }}
+            >
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', fontSize: '0.8rem', marginBottom: salaSel.salaRecursos?.length ? '8px' : 0 }}>
+                {salaSel.ubicacion && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}>
+                    <MapPin size={13} /> {salaSel.ubicacion}
+                  </span>
+                )}
+                {typeof salaSel.capacidad === 'number' && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}>
+                    <Users size={13} /> Capacidad {salaSel.capacidad}
+                  </span>
+                )}
+              </div>
+              {salaSel.salaRecursos && salaSel.salaRecursos.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                  {salaSel.salaRecursos.map((sr) => (
+                    <ResourceChip
+                      key={sr.id}
+                      nombre={sr.recurso.nombre}
+                      categoria={sr.recurso.categoria}
+                      icono={sr.recurso.icono}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <Input
+            label="Fecha *"
+            type="date"
+            value={form.fecha}
+            min={new Date().toISOString().split('T')[0]}
+            onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+            required
+            wrapperClassName="mb-3"
+          />
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+            <Input
+              label="Hora de Inicio *"
+              type="time"
+              value={form.horaInicio}
+              min="07:00"
+              max="21:00"
+              onChange={(e) => setForm({ ...form, horaInicio: e.target.value })}
+              required
+            />
+            <Input
+              label="Hora de Fin *"
+              type="time"
+              value={form.horaFin}
+              min="07:30"
+              max="21:30"
+              onChange={(e) => setForm({ ...form, horaFin: e.target.value })}
+              required
+            />
+          </div>
+
+          {/* Timeline de disponibilidad */}
+          {form.salaId > 0 && form.fecha && (
+            <div style={{ marginBottom: '14px' }}>
+              <label className="label" style={{ marginBottom: '8px' }}>Disponibilidad del día</label>
+              <AvailabilityTimeline
+                ocupados={ocupados}
+                seleccion={{ horaInicio: form.horaInicio, horaFin: form.horaFin }}
+                loading={loadingAvail}
+              />
+            </div>
+          )}
+
+          <Input
+            label="Motivo"
+            placeholder="Describe brevemente el motivo de tu reserva"
+            value={form.motivo}
+            onChange={(e) => setForm({ ...form, motivo: e.target.value })}
+            wrapperClassName="mb-6"
+          />
+
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <Button type="button" variant="secondary" onClick={() => setShowModal(false)} fullWidth>Cancelar</Button>
+            <Button type="submit" variant="primary" disabled={saving} fullWidth>{saving ? 'Creando...' : 'Confirmar Reserva'}</Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* ─── Modal: Ajustar Reserva (HU-11, solo SECRETARIA) ─── */}
-      {adjusting && (
-        <div className="modal-overlay" onClick={() => setAdjusting(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-              <h2 style={{ fontWeight: 700, fontSize: '1.15rem' }}>Ajustar Reserva</h2>
-              <button onClick={() => setAdjusting(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><X size={20} /></button>
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '16px' }}>
+      <Modal
+        open={adjusting !== null}
+        onClose={() => setAdjusting(null)}
+        title="Ajustar Reserva"
+        description={
+          adjusting ? (
+            <>
               Reserva de <strong>{adjusting.usuario.nombre}</strong> — original: {formatDate(adjusting.fecha.split('T')[0])} · {formatTime(adjusting.horaInicio)}–{formatTime(adjusting.horaFin)}
-            </p>
+            </>
+          ) : null
+        }
+        size="lg"
+      >
+        {adjusting && (
+          <form onSubmit={handleAdjust}>
+            <div style={{ marginBottom: '14px' }}>
+              <label className="label">Sala *</label>
+              <select className="input-field" value={adjustForm.salaId}
+                onChange={(e) => setAdjustForm({ ...adjustForm, salaId: Number(e.target.value) })} required>
+                {salas.map((s) => (
+                  <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
+                ))}
+              </select>
+            </div>
 
-            <form onSubmit={handleAdjust}>
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Sala *</label>
-                <select className="input-field" value={adjustForm.salaId}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, salaId: Number(e.target.value) })} required>
-                  {salas.map((s) => (
-                    <option key={s.id} value={s.id}>{s.nombre}{s.ubicacion ? ` — ${s.ubicacion}` : ''}</option>
-                  ))}
-                </select>
-              </div>
+            <Input
+              label="Fecha *"
+              type="date"
+              value={adjustForm.fecha}
+              min={new Date().toISOString().split('T')[0]}
+              onChange={(e) => setAdjustForm({ ...adjustForm, fecha: e.target.value })}
+              required
+              wrapperClassName="mb-3"
+            />
 
-              <div style={{ marginBottom: '14px' }}>
-                <label className="label">Fecha *</label>
-                <input className="input-field" type="date" value={adjustForm.fecha}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, fecha: e.target.value })} required />
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+              <Input
+                label="Hora de Inicio *"
+                type="time"
+                value={adjustForm.horaInicio}
+                min="07:00"
+                max="21:00"
+                onChange={(e) => setAdjustForm({ ...adjustForm, horaInicio: e.target.value })}
+                required
+              />
+              <Input
+                label="Hora de Fin *"
+                type="time"
+                value={adjustForm.horaFin}
+                min="07:30"
+                max="21:30"
+                onChange={(e) => setAdjustForm({ ...adjustForm, horaFin: e.target.value })}
+                required
+              />
+            </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
-                <div>
-                  <label className="label">Hora de Inicio *</label>
-                  <input className="input-field" type="time" value={adjustForm.horaInicio}
-                    min="07:00" max="21:00"
-                    onChange={(e) => setAdjustForm({ ...adjustForm, horaInicio: e.target.value })} required />
-                </div>
-                <div>
-                  <label className="label">Hora de Fin *</label>
-                  <input className="input-field" type="time" value={adjustForm.horaFin}
-                    min="07:30" max="21:30"
-                    onChange={(e) => setAdjustForm({ ...adjustForm, horaFin: e.target.value })} required />
-                </div>
-              </div>
+            <Input
+              label="Motivo"
+              value={adjustForm.motivo}
+              onChange={(e) => setAdjustForm({ ...adjustForm, motivo: e.target.value })}
+              wrapperClassName="mb-6"
+            />
 
-              <div style={{ marginBottom: '24px' }}>
-                <label className="label">Motivo</label>
-                <input className="input-field" value={adjustForm.motivo}
-                  onChange={(e) => setAdjustForm({ ...adjustForm, motivo: e.target.value })} />
-              </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <Button type="button" variant="secondary" onClick={() => setAdjusting(null)} fullWidth>Cancelar</Button>
+              <Button type="submit" variant="primary" disabled={savingAdjust} fullWidth>{savingAdjust ? 'Guardando...' : 'Guardar Ajuste'}</Button>
+            </div>
+          </form>
+        )}
+      </Modal>
 
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <button type="button" className="btn-secondary" onClick={() => setAdjusting(null)} style={{ flex: 1 }}>Cancelar</button>
-                <button type="submit" className="btn-primary" disabled={savingAdjust} style={{ flex: 1 }}>{savingAdjust ? 'Guardando...' : 'Guardar Ajuste'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        open={cancelId !== null}
+        onClose={() => (cancelLoading ? null : setCancelId(null))}
+        onConfirm={confirmCancel}
+        title="Cancelar reserva"
+        description="Esta acción no se puede deshacer. La reserva quedará marcada como cancelada."
+        confirmText="Sí, cancelar"
+        cancelText="Volver"
+        variant="danger"
+        loading={cancelLoading}
+      />
     </div>
   );
 }

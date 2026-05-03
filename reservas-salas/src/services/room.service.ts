@@ -1,13 +1,18 @@
 // src/services/room.service.ts
-import { roomRepository } from '@/repositories/room.repository';
+import { roomRepository, type RoomFilters } from '@/repositories/room.repository';
 import { reservationRepository } from '@/repositories/reservation.repository';
 import { createRoomSchema, updateRoomSchema, updateRoomStatusSchema } from '@/lib/validations/room.schema';
 import { audit } from '@/lib/audit';
+import {
+  parseUbicacionAula,
+  parseTorreon,
+  AULAS_MAX_SALONES,
+} from '@/lib/edificios';
 
 export const roomService = {
-  /** Listar salas de la facultad del usuario */
-  async listByFacultad(facultadId: number) {
-    return roomRepository.findByFacultad(facultadId);
+  /** Listar salas de la facultad del usuario (con filtros opcionales) */
+  async listByFacultad(facultadId: number, filters: RoomFilters = {}) {
+    return roomRepository.findByFacultad(facultadId, filters);
   },
 
   /** Obtener sala por ID */
@@ -26,6 +31,28 @@ export const roomService = {
   ) {
     // Validar datos
     const validated = createRoomSchema.parse(data);
+
+    // Validar rango de salón usando parseUbicacionAula centralizado
+    if (validated.ubicacion) {
+      const aulaParseada = parseUbicacionAula(validated.ubicacion);
+      if (aulaParseada) {
+        const limiteMax = AULAS_MAX_SALONES[aulaParseada.piso];
+        if (limiteMax === undefined) {
+          throw new Error(`El piso ${aulaParseada.piso} no existe en los edificios de Aulas`);
+        }
+        if (aulaParseada.numero < 1 || aulaParseada.numero > limiteMax) {
+          throw new Error(
+            `El piso ${aulaParseada.piso} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`
+          );
+        }
+      }
+
+      // Validar que el Torreón sea válido (0–4)
+      const torreonNum = parseTorreon(validated.ubicacion);
+      if (validated.ubicacion.match(/torre[oó]n/i) && torreonNum === null) {
+        throw new Error('El Torreón indicado no existe. Solo existen Torreones del 0 al 4');
+      }
+    }
 
     // Verificar nombre único en la facultad
     const exists = await roomRepository.existsByNombreAndFacultad(validated.nombre, facultadId);
@@ -67,6 +94,29 @@ export const roomService = {
     if (sala.facultadId !== facultadId) throw new Error('No tiene permiso para editar esta sala');
 
     const validated = updateRoomSchema.parse(data);
+
+    // Validar rango de salón al editar usando parseUbicacionAula
+    if (validated.ubicacion) {
+      const aulaParseada = parseUbicacionAula(validated.ubicacion);
+      if (aulaParseada) {
+        const limiteMax = AULAS_MAX_SALONES[aulaParseada.piso];
+        if (limiteMax === undefined) {
+          throw new Error(`El piso ${aulaParseada.piso} no existe en los edificios de Aulas`);
+        }
+        if (aulaParseada.numero < 1 || aulaParseada.numero > limiteMax) {
+          throw new Error(
+            `El piso ${aulaParseada.piso} solo permite salones del 01 al ${String(limiteMax).padStart(2, '0')}`
+          );
+        }
+      }
+
+      //Validar Torreón al editar
+      const torreonNum = parseTorreon(validated.ubicacion);
+      if (validated.ubicacion.match(/torre[oó]n/i) && torreonNum === null) {
+        throw new Error('El Torreón indicado no existe. Solo existen Torreones del 0 al 4');
+      }
+    }
+
 
     // Si cambia el nombre, verificar que no exista
     if (validated.nombre) {
