@@ -46,7 +46,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           className={cn(
             'w-full py-3 rounded-[10px] text-sm bg-[var(--bg-input)] text-[var(--text-primary)]',
             'border transition-all outline-none',
-            leftIcon  ? 'pl-9  pr-4' : 'px-4',
+            leftIcon  ? 'pl-9 pr-4' : 'px-4',
             rightIcon ? 'pr-9' : '',
             error
               ? 'border-[var(--danger)] focus:ring-2 focus:ring-[var(--danger)]/20'
