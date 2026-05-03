@@ -5,7 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import Image from 'next/image';
-import { Input, Card, ThemeToggle } from '@/components/ui';
+
 
 interface Facultad {
   id: number;
