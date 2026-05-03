@@ -31,6 +31,17 @@ export async function GET(req: Request) {
       );
     }
 
+    // Validar que el rango no sea un único domingo
+    if (fechaInicioStr && fechaFinStr && fechaInicioStr === fechaFinStr) {
+      const dia = new Date(fechaInicioStr + 'T12:00:00').getDay(); // 0 = domingo
+      if (dia === 0) {
+        return NextResponse.json(
+          { error: 'Los domingos no tienen reservas. Por favor selecciona otro día.' },
+          { status: 400 }
+        );
+      }
+    }
+
     const fechaInicio = fechaInicioStr ? new Date(fechaInicioStr + 'T00:00:00.000Z') : undefined;
     const fechaFin = fechaFinStr ? new Date(fechaFinStr + 'T23:59:59.999Z') : undefined;
 
@@ -100,19 +111,41 @@ export async function GET(req: Request) {
     }
 
     if (tipo === 'usuario') {
-      // HU-16: reservas por usuario
+      // HU-16: reservas por usuario con detalle de fecha y sala
       const reservas = await prisma.reserva.findMany({
         where: whereBase,
         select: {
+          id: true,
           usuarioId: true,
           estado: true,
+          fecha: true,
+          horaInicio: true,
+          horaFin: true,
           usuario: { select: { nombre: true, correoInstitucional: true, rol: true } },
+          sala: { select: { nombre: true, ubicacion: true } },
         },
+        orderBy: [{ usuarioId: 'asc' }, { fecha: 'desc' }],
       });
 
       const mapaUsuarios: Record<
         number,
-        { nombre: string; correo: string; rol: string; total: number; confirmadas: number; canceladas: number }
+        {
+          nombre: string;
+          correo: string;
+          rol: string;
+          total: number;
+          confirmadas: number;
+          canceladas: number;
+          reservas: {
+            id: number;
+            fecha: string;
+            horaInicio: string;
+            horaFin: string;
+            sala: string;
+            ubicacion: string | null;
+            estado: string;
+          }[];
+        }
       > = {};
 
       for (const r of reservas) {
@@ -124,11 +157,26 @@ export async function GET(req: Request) {
             total: 0,
             confirmadas: 0,
             canceladas: 0,
+            reservas: [],
           };
         }
         mapaUsuarios[r.usuarioId].total++;
         if (r.estado === 'CONFIRMADA') mapaUsuarios[r.usuarioId].confirmadas++;
-        else mapaUsuarios[r.usuarioId].canceladas++;
+        else if (r.estado === 'CANCELADA') mapaUsuarios[r.usuarioId].canceladas++;
+
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const horaIni = `${pad(r.horaInicio.getUTCHours())}:${pad(r.horaInicio.getUTCMinutes())}`;
+        const horaFin = `${pad(r.horaFin.getUTCHours())}:${pad(r.horaFin.getUTCMinutes())}`;
+
+        mapaUsuarios[r.usuarioId].reservas.push({
+          id: r.id,
+          fecha: r.fecha.toISOString().split('T')[0],
+          horaInicio: horaIni,
+          horaFin: horaFin,
+          sala: r.sala.nombre,
+          ubicacion: r.sala.ubicacion,
+          estado: r.estado,
+        });
       }
 
       const datos = Object.values(mapaUsuarios).sort((a, b) => b.total - a.total);
