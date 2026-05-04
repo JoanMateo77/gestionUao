@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { BookOpen, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import Image from 'next/image';
 import { Input, Card, ThemeToggle } from '@/components/ui';
 
 interface Facultad {
@@ -129,13 +130,14 @@ export default function LoginPage() {
       </div>
       {/* Logo */}
       <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-        <div style={{
-          width: '60px', height: '60px', borderRadius: '16px',
-          background: 'var(--primary)', display: 'inline-flex',
-          alignItems: 'center', justifyContent: 'center', marginBottom: '16px',
-        }}>
-          <BookOpen size={30} style={{ color: 'var(--primary-fg)' }} />
-        </div>
+        <Image
+          src="/UAO-LOGO-NUEVO_Mesa-de-trabajo-1-1-1-1.png"
+          alt="Logo UAO"
+          width={180}
+          height={72}
+          priority
+          style={{ objectFit: 'contain', display: 'block', margin: '0 auto 16px' }}
+        />
         <h1 style={{ fontSize: '1.6rem', fontWeight: 700, color: 'var(--text-primary)' }}>
           Sistema de Reservas
         </h1>
