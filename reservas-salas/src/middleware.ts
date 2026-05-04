@@ -26,6 +26,8 @@ export const config = {
   matcher: [
     '/salas/:path*',
     '/reservas/:path*',
+    '/disponibilidad/:path*',
+    '/disponibilidad',
     '/historial/:path*',
     '/reportes',
     '/reportes/:path*',

@@ -11,10 +11,12 @@ import { ThemeToggle } from '@/components/ui';
 const navItems = {
   DOCENTE: [
     { href: '/salas', label: 'Mis Salas' },
+    { href: '/disponibilidad', label: 'Disponibilidad' },
     { href: '/reservas', label: 'Mis Reservas' },
   ],
   SECRETARIA: [
     { href: '/salas', label: 'Gestión de Salas' },
+    { href: '/disponibilidad', label: 'Disponibilidad' },
     { href: '/reservas', label: 'Reservas' },
     { href: '/reportes', label: 'Reportes' },
   ],
