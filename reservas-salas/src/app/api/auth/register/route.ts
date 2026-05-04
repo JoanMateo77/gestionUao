@@ -1,6 +1,7 @@
 // src/app/api/auth/register/route.ts
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
+import { ZodError } from 'zod';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/prisma';
 import { registerSchema } from '@/lib/validations/auth.schema';
@@ -82,8 +83,9 @@ export async function POST(req: Request) {
       { status: 201 }
     );
   } catch (error) {
-    if (error instanceof Error && error.name === 'ZodError') {
-      return NextResponse.json({ error: 'Datos inválidos', details: error }, { status: 400 });
+    if (error instanceof ZodError) {
+      const mensaje = error.issues[0]?.message ?? 'Datos inválidos';
+      return NextResponse.json({ error: mensaje }, { status: 400 });
     }
     console.error('Error en registro:', error);
     return NextResponse.json({ error: 'Error interno del servidor' }, { status: 500 });

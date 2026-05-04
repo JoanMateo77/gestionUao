@@ -57,12 +57,11 @@ export default function LoginPage() {
     try {
       const result = await signIn('credentials', { correo, password, redirect: false });
       if (result?.error) {
-        const errorMessages: Record<string, string> = {
-          CredentialsSignin: 'Correo o contraseña incorrectos',
-          'Correo y contraseña son requeridos': 'Correo y contraseña son requeridos',
-          'Usuario desactivado': 'Tu cuenta está desactivada. Contacta al administrador.',
-        };
-        setError(errorMessages[result.error] ?? 'Error al iniciar sesión. Intenta de nuevo.');
+        if (result.error.includes('desactivado') || result.error === 'Usuario desactivado') {
+          setError('Tu cuenta está desactivada. Contacta a tu secretaría de facultad.');
+        } else {
+          setError('Correo o contraseña incorrectos');
+        }
       } else {
         router.push('/reservas');
         router.refresh();
@@ -256,7 +255,7 @@ export default function LoginPage() {
               onChange={(e) => setRegForm({ ...regForm, password: e.target.value })}
               required
               minLength={8}
-              helperText="Mínimo 8 caracteres y al menos un carácter especial (!@#$%...)"
+              helperText="Mínimo 8 caracteres, una mayúscula y un carácter especial (!@#$%...)"
               wrapperClassName="mb-3"
             />
             <Input
