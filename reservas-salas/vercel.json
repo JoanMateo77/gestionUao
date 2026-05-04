@@ -1,13 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "git": {
-    "deploymentEnabled": {
-      "master": true,
-      "mod/auth": false,
-      "mod/reservas": false,
-      "mod/salas": false,
-      "mod/reportes": false,
-      "fix/auth-logo-uao": false
-    }
-  }
+  "ignoreCommand": "if [ \"$VERCEL_GIT_COMMIT_REF\" = \"master\" ]; then exit 1; else exit 0; fi"
 }
