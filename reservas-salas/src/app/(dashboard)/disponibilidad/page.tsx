@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { ChevronLeft, ChevronRight, CalendarDays, MapPin, Users } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 
 /* ─── Tipos ─── */
 interface Sala {
@@ -23,9 +23,6 @@ interface ReservaSlot {
 }
 
 /* ─── Constantes ─── */
-const DIAS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio',
-  'agosto','septiembre','octubre','noviembre','diciembre'];
 
 /** Franjas de 30 min: 07:00 … 21:00 (la última reservable es hasta 21:30) */
 function generarFranjas(): string[] {
@@ -46,14 +43,6 @@ function getLunes(date: Date): Date {
   d.setUTCDate(d.getUTCDate() + diff);
   d.setUTCHours(0, 0, 0, 0);
   return d;
-}
-
-function getDiasSemana(lunes: Date): Date[] {
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(lunes);
-    d.setUTCDate(lunes.getUTCDate() + i);
-    return d;
-  });
 }
 
 function toYMD(d: Date): string {
@@ -101,8 +90,6 @@ export default function DisponibilidadPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
-  const dias = getDiasSemana(lunes);
-
   /* ─── Fetch ─── */
   const fetchData = useCallback(async () => {
     if (status !== 'authenticated') return;
@@ -141,8 +128,6 @@ export default function DisponibilidadPage() {
   /* ─── Helpers ─── */
   const getReserva = (salaId: number, fecha: Date, slot: string) =>
     reservas.find((r) => r.salaId === salaId && r.fecha === toYMD(fecha) && franjaOcupada(slot, r));
-
-  const diaSelStr = toYMD(diaSeleccionado);
 
   if (status === 'loading') {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>;
@@ -363,7 +348,7 @@ export default function DisponibilidadPage() {
                   setBookingModal(null);
                   fetchData(); // reload availability
                 }
-              } catch(err) {
+              } catch {
                 setBookingError('Error de conexión al servidor');
               } finally {
                 setBookingLoading(false);
