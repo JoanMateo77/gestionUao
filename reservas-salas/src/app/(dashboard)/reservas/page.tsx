@@ -86,9 +86,12 @@ export default function ReservasPage() {
   const router = useRouter();
 
   const [data, setData] = useState<ApiResponse | null>(null);
+  const [stats, setStats] = useState<{ total: number; activas: number; canceladas: number }>({ total: 0, activas: 0, canceladas: 0 });
   const [salas, setSalas] = useState<Sala[]>([]);
   const [todasSalas, setTodasSalas] = useState<Sala[]>([]);
+  const [docentes, setDocentes] = useState<{ id: number; nombre: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'activas' | 'historial'>('historial');
   const [filter, setFilter] = useState<string>('');
   const [page, setPage] = useState(1);
 
@@ -98,6 +101,7 @@ export default function ReservasPage() {
 
   // Filtros SECRETARIA (HU-13)
   const [filtroSalaId, setFiltroSalaId] = useState<string>('');
+  const [filtroUsuarioId, setFiltroUsuarioId] = useState<string>('');
   const [filtroFechaInicio, setFiltroFechaInicio] = useState('');
   const [filtroFechaFin, setFiltroFechaFin] = useState('');
   const [showFilters, setShowFilters] = useState(false);
@@ -120,10 +124,11 @@ export default function ReservasPage() {
     const q = new URLSearchParams({ page: String(page), limit: '20' });
     if (filter) q.set('estado', filter);
     if (isSecretaria && filtroSalaId) q.set('salaId', filtroSalaId);
+    if (isSecretaria && filtroUsuarioId) q.set('usuarioId', filtroUsuarioId);
     if (isSecretaria && filtroFechaInicio) q.set('fechaInicio', filtroFechaInicio);
     if (isSecretaria && filtroFechaFin) q.set('fechaFin', filtroFechaFin);
     return q;
-  }, [page, filter, isSecretaria, filtroSalaId, filtroFechaInicio, filtroFechaFin]);
+  }, [page, filter, isSecretaria, filtroSalaId, filtroUsuarioId, filtroFechaInicio, filtroFechaFin]);
 
   const fetchReservas = useCallback(async () => {
     try {
@@ -132,6 +137,29 @@ export default function ReservasPage() {
     } catch { toast.error('Error al cargar'); }
     finally { setLoading(false); }
   }, [buildQuery]);
+
+  const buildStatsQuery = useCallback(() => {
+    const q = new URLSearchParams({ page: '1', limit: '1' });
+    if (isSecretaria && filtroSalaId) q.set('salaId', filtroSalaId);
+    if (isSecretaria && filtroUsuarioId) q.set('usuarioId', filtroUsuarioId);
+    if (isSecretaria && filtroFechaInicio) q.set('fechaInicio', filtroFechaInicio);
+    if (isSecretaria && filtroFechaFin) q.set('fechaFin', filtroFechaFin);
+    return q;
+  }, [isSecretaria, filtroSalaId, filtroUsuarioId, filtroFechaInicio, filtroFechaFin]);
+
+  const fetchStats = useCallback(async () => {
+    try {
+      const [resAll, resActivas, resCanceladas] = await Promise.all([
+        fetch(`/api/reservations?${buildStatsQuery()}`),
+        fetch(`/api/reservations?${buildStatsQuery()}&estado=CONFIRMADA`),
+        fetch(`/api/reservations?${buildStatsQuery()}&estado=CANCELADA`),
+      ]);
+      const [all, activas, canceladas]: ApiResponse[] = await Promise.all([
+        resAll.json(), resActivas.json(), resCanceladas.json(),
+      ]);
+      setStats({ total: all.total, activas: activas.total, canceladas: canceladas.total });
+    } catch { /* silencioso */ }
+  }, [buildStatsQuery]);
 
   const fetchSalas = useCallback(async () => {
     try {
@@ -142,7 +170,17 @@ export default function ReservasPage() {
     } catch {}
   }, []);
 
-  useEffect(() => { fetchReservas(); }, [fetchReservas]);
+  const fetchDocentes = useCallback(async () => {
+    if (!isSecretaria) return;
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) setDocentes(await res.json());
+    } catch {}
+  }, [isSecretaria]);
+
+  useEffect(() => { fetchDocentes(); }, [fetchDocentes]);
+
+  useEffect(() => { fetchReservas(); fetchStats(); }, [fetchReservas, fetchStats]);
   useEffect(() => { fetchSalas(); }, [fetchSalas]);
 
   // Preselección desde query (?salaId=X&new=1) al entrar desde el catálogo
@@ -246,13 +284,11 @@ export default function ReservasPage() {
   };
 
   const clearFilters = () => {
-    setFiltroSalaId(''); setFiltroFechaInicio(''); setFiltroFechaFin(''); setPage(1);
+    setFiltroSalaId(''); setFiltroUsuarioId(''); setFiltroFechaInicio(''); setFiltroFechaFin(''); setPage(1);
   };
+  const hasActiveFilters = filtroSalaId || filtroUsuarioId || filtroFechaInicio || filtroFechaFin;
 
   const reservas = data?.reservas || [];
-  const activas = reservas.filter((r) => r.estado === 'CONFIRMADA').length;
-  const historial = reservas.filter((r) => r.estado === 'CANCELADA').length;
-  const hasActiveFilters = filtroSalaId || filtroFechaInicio || filtroFechaFin;
   const salaSel = salas.find((s) => s.id === Number(form.salaId));
 
   return (
@@ -306,6 +342,15 @@ export default function ReservasPage() {
                 ))}
               </select>
             </div>
+            <div>
+              <label className="label" style={{ fontSize: '0.75rem' }}>Profesor</label>
+              <select className="input-field" value={filtroUsuarioId} onChange={(e) => { setFiltroUsuarioId(e.target.value); setPage(1); }}>
+                <option value="">Todos los profesores</option>
+                {docentes.map((d) => (
+                  <option key={d.id} value={d.id}>{d.nombre}</option>
+                ))}
+              </select>
+            </div>
             <Input
               label="Desde"
               type="date"
@@ -334,31 +379,30 @@ export default function ReservasPage() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '24px' }}>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--info)' }}>{activas}</div>
+          <div className="stat-value" style={{ color: 'var(--info)' }}>{stats.activas}</div>
           <div className="stat-label">Reservas Activas</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value">{historial}</div>
+          <div className="stat-value">{stats.canceladas}</div>
           <div className="stat-label">Canceladas</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--info)' }}>{data?.total || 0}</div>
+          <div className="stat-value" style={{ color: 'var(--info)' }}>{stats.total}</div>
           <div className="stat-label">Total</div>
         </div>
       </div>
 
       {/* Filter Tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
-        {[
-          { value: '', label: 'Todas' },
-          { value: 'CONFIRMADA', label: 'Activas' },
-          { value: 'CANCELADA', label: 'Historial' },
-        ].map((f) => (
+        {([
+          { tab: 'activas', estado: 'CONFIRMADA', label: 'Activas' },
+          { tab: 'historial', estado: '', label: 'Historial' },
+        ] as { tab: 'activas' | 'historial'; estado: string; label: string }[]).map((f) => (
           <Button
-            key={f.value}
-            variant={filter === f.value ? 'primary' : 'secondary'}
+            key={f.tab}
+            variant={tab === f.tab ? 'primary' : 'secondary'}
             size="sm"
-            onClick={() => { setFilter(f.value); setPage(1); }}
+            onClick={() => { setTab(f.tab); setFilter(f.estado); setPage(1); }}
           >
             {f.label}
           </Button>
