@@ -23,6 +23,20 @@ export async function GET(req: Request) {
     const tipo = searchParams.get('tipo') ?? 'reservas';
     const fechaInicioStr = searchParams.get('fechaInicio');
     const fechaFinStr = searchParams.get('fechaFin');
+    const minReservasStr = searchParams.get('minReservas');
+
+    // CP-014 E2: validar umbral minReservas (HU-014 — número mínimo de reservas para incluir la sala)
+    let minReservas: number | undefined;
+    if (minReservasStr !== null && minReservasStr !== '') {
+      const n = Number(minReservasStr);
+      if (!Number.isInteger(n) || n < 1) {
+        return NextResponse.json(
+          { error: 'El número mínimo de reservas debe ser un entero mayor o igual a 1' },
+          { status: 400 }
+        );
+      }
+      minReservas = n;
+    }
 
     if (fechaInicioStr && fechaFinStr && fechaInicioStr > fechaFinStr) {
       return NextResponse.json(
@@ -78,7 +92,17 @@ export async function GET(req: Request) {
       );
 
       const sorted = counts.sort((a, b) => b.total - a.total);
-      return NextResponse.json({ tipo, datos: sorted });
+      // CP-014 E2 (HU-014): filtro por número mínimo de reservas — incluye solo salas con total >= minReservas
+      const filtrado = minReservas !== undefined ? sorted.filter((x) => x.total >= minReservas!) : sorted;
+      // CP-014 E3: si no hay resultados, devolver mensaje explícito
+      const conReservas = filtrado.filter((x) => x.total > 0);
+      if (conReservas.length === 0) {
+        const motivo = minReservas !== undefined
+          ? `No hay salas con ${minReservas} o más reservas en el rango ingresado`
+          : 'No hay reservas registradas en el rango ingresado';
+        return NextResponse.json({ tipo, datos: [], mensaje: motivo, minReservas });
+      }
+      return NextResponse.json({ tipo, datos: filtrado, minReservas });
     }
 
     if (tipo === 'horas') {

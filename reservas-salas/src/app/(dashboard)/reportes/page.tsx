@@ -30,6 +30,7 @@ export default function ReportesPage() {
   const [tipo, setTipo] = useState<TipoReporte>('reservas');
   const [fechaInicio, setFechaInicio] = useState('');
   const [fechaFin, setFechaFin] = useState('');
+  const [minReservas, setMinReservas] = useState<string>(''); // CP-014 E2
   const [loading, setLoading] = useState(false);
   const [datos, setDatos] = useState<FilaReservas[] | FilaHoras[] | FilaUsuario[] | null>(null);
   const [busquedaUsuario, setBusquedaUsuario] = useState('');
@@ -61,19 +62,30 @@ export default function ReportesPage() {
         return;
       }
     }
+    // CP-014 E2: validar minReservas si fue ingresado
+    if (tipo === 'reservas' && minReservas !== '') {
+      const n = Number(minReservas);
+      if (!Number.isInteger(n) || n < 1) {
+        toast.error('El número mínimo de reservas debe ser un entero mayor o igual a 1');
+        return;
+      }
+    }
     setLoading(true); setDatos(null); setBusquedaUsuario('');
     try {
       const q = new URLSearchParams({ tipo });
       if (fechaInicio) q.set('fechaInicio', fechaInicio);
       if (fechaFin) q.set('fechaFin', fechaFin);
+      if (tipo === 'reservas' && minReservas !== '') q.set('minReservas', minReservas);
       const res = await fetch(`/api/reports?${q}`);
       const json = await res.json();
       if (!res.ok) { toast.error(json.error || 'Error'); return; }
       setDatos(json.datos);
-      if (json.datos.length === 0) toast.info('No hay datos para el rango seleccionado');
+      if (json.datos.length === 0) {
+        toast.info(json.mensaje ?? 'No hay datos para el rango seleccionado');
+      }
     } catch { toast.error('Error de conexión'); }
     finally { setLoading(false); }
-  }, [tipo, fechaInicio, fechaFin]);
+  }, [tipo, fechaInicio, fechaFin, minReservas]);
 
   const getTituloReporte = () => {
     const labels: Record<TipoReporte, string> = {
@@ -169,12 +181,25 @@ export default function ReportesPage() {
         ))}
       </div>
 
-      {/* Filtros de fecha */}
+      {/* Filtros de fecha + minReservas (CP-014 E2 — solo para tipo=reservas) */}
       <Card padding="lg" className="mb-6">
-        <h3 style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '16px' }}>Rango de fechas (opcional)</h3>
+        <h3 style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '16px' }}>
+          Filtros (opcional)
+        </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px', alignItems: 'end' }}>
           <Input label="Desde" type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />
           <Input label="Hasta" type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} />
+          {tipo === 'reservas' && (
+            <Input
+              label="Nº mínimo de reservas"
+              type="number"
+              min={1}
+              placeholder="Ej. 5"
+              value={minReservas}
+              onChange={(e) => setMinReservas(e.target.value)}
+              helperText="Solo salas con ≥ N reservas"
+            />
+          )}
           <Button variant="primary" onClick={generarReporte} disabled={loading}
             leftIcon={loading ? <div className="spinner" style={{ width: '14px', height: '14px' }} /> : <Search size={16} />}>
             {loading ? 'Generando...' : 'Generar Reporte'}
