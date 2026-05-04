@@ -3,6 +3,7 @@ import { roomRepository, type RoomFilters } from '@/repositories/room.repository
 import { reservationRepository } from '@/repositories/reservation.repository';
 import { createRoomSchema, updateRoomSchema, updateRoomStatusSchema } from '@/lib/validations/room.schema';
 import { audit } from '@/lib/audit';
+import { notificationService, buildEmailPayload } from '@/services/notification.service';
 import {
   parseUbicacionAula,
   parseTorreon,
@@ -92,6 +93,7 @@ export const roomService = {
     const sala = await roomRepository.findById(id);
     if (!sala) throw new Error('Sala no encontrada');
     if (sala.facultadId !== facultadId) throw new Error('No tiene permiso para editar esta sala');
+    if (!sala.habilitada) throw new Error('No se puede editar una sala deshabilitada. Habilítela primero');
 
     const validated = updateRoomSchema.parse(data);
 
@@ -157,9 +159,42 @@ export const roomService = {
     const updated = await roomRepository.updateStatus(id, habilitada);
 
     // HU-06 E3: al deshabilitar, cancelar reservas futuras confirmadas (R-05)
-    let reservasCanceladas = 0;
+    // HU-06 E4: notificar a cada usuario afectado (in-app + email opcional)
+    let reservasAfectadas: Awaited<ReturnType<typeof reservationRepository.cancelFutureByRoom>> = [];
     if (!habilitada) {
-      reservasCanceladas = await reservationRepository.cancelFutureByRoom(id, usuarioId);
+      reservasAfectadas = await reservationRepository.cancelFutureByRoom(id, usuarioId);
+
+      const fmtTime = (d: Date) =>
+        `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+      const fmtDate = (d: Date) => d.toISOString().split('T')[0];
+
+      for (const r of reservasAfectadas) {
+        const titulo = `Tu reserva en ${r.sala.nombre} fue cancelada`;
+        const mensaje =
+          `La sala "${r.sala.nombre}" fue deshabilitada por administración. ` +
+          `Tu reserva del ${fmtDate(r.fecha)} de ${fmtTime(r.horaInicio)} a ${fmtTime(r.horaFin)} ` +
+          `fue cancelada automáticamente. Por favor reserva otra sala disponible.`;
+
+        await notificationService.create({
+          usuarioId: r.usuarioId,
+          tipo: 'RESERVA_CANCELADA_SALA_DESHABILITADA',
+          titulo,
+          mensaje,
+          metadata: {
+            reservaId: r.id,
+            salaId: id,
+            salaNombre: r.sala.nombre,
+            fecha: fmtDate(r.fecha),
+            horaInicio: fmtTime(r.horaInicio),
+            horaFin: fmtTime(r.horaFin),
+          },
+          email: buildEmailPayload(r.usuario.correoInstitucional, titulo, mensaje, {
+            Sala: r.sala.nombre,
+            Fecha: fmtDate(r.fecha),
+            Horario: `${fmtTime(r.horaInicio)} - ${fmtTime(r.horaFin)}`,
+          }),
+        });
+      }
     }
 
     await audit({
@@ -168,10 +203,10 @@ export const roomService = {
       entidad: 'SALA',
       entidadId: id,
       datosAnteriores: { habilitada: sala.habilitada },
-      datosNuevos: { habilitada, reservasCanceladas },
+      datosNuevos: { habilitada, reservasCanceladas: reservasAfectadas.length },
       ipAddress: ip,
     });
 
-    return { ...updated, reservasCanceladas };
+    return { ...updated, reservasCanceladas: reservasAfectadas.length };
   },
 };

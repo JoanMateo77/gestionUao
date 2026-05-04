@@ -31,6 +31,8 @@ export const config = {
     '/historial/:path*',
     '/reportes',
     '/reportes/:path*',
+    '/notificaciones',
+    '/notificaciones/:path*',
     '/dashboard/:path*',
   ],
 };

@@ -37,6 +37,13 @@ enum CategoriaRecurso {
   ACCESIBILIDAD
 }
 
+enum TipoNotificacion {
+  RESERVA_CANCELADA_SALA_DESHABILITADA
+  RESERVA_AJUSTADA
+  RESERVA_CANCELADA_POR_SECRETARIA
+  GENERAL
+}
+
 // ─────────────────────────────────────────────
 // TABLAS
 // ─────────────────────────────────────────────
@@ -73,6 +80,7 @@ model Usuario {
   reservasCreadas    Reserva[]      @relation("ReservaCreador")
   reservasCanceladas Reserva[]      @relation("ReservaCancelador")
   logsAuditoria      LogAuditoria[]
+  notificaciones     Notificacion[]
 
   @@index([facultadId])
   @@index([rol])
@@ -162,6 +170,26 @@ model Reserva {
   @@index([usuarioId])
   @@index([fecha])
   @@map("reserva")
+}
+
+model Notificacion {
+  id            Int              @id @default(autoincrement())
+  tipo          TipoNotificacion @default(GENERAL)
+  titulo        String           @db.VarChar(150)
+  mensaje       String           @db.VarChar(500)
+  metadata      Json?
+  leida         Boolean          @default(false)
+  enviadaEmail  Boolean          @default(false) @map("enviada_email")
+  fechaCreacion DateTime         @default(now()) @map("fecha_creacion")
+  fechaLeida    DateTime?        @map("fecha_leida")
+
+  // FK
+  usuarioId Int     @map("usuario_id")
+  usuario   Usuario @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+
+  @@index([usuarioId, leida])
+  @@index([usuarioId, fechaCreacion])
+  @@map("notificacion")
 }
 
 model LogAuditoria {
