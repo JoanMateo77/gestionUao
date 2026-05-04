@@ -40,10 +40,15 @@ export async function POST(
     const { recursoId, cantidad } = await req.json();
     const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
 
+    const qty = Number(cantidad);
+    if (!Number.isInteger(qty) || qty < 1) {
+      return NextResponse.json({ error: 'La cantidad mínima es 1' }, { status: 400 });
+    }
+
     const assignment = await resourceService.addToSala(
       Number(params.id),
       recursoId,
-      Number(cantidad) || 1,
+      qty,
       session.user.facultadId,
       session.user.id,
       ip
