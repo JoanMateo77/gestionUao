@@ -1,17 +1,21 @@
 'use client';
 
-import { forwardRef, InputHTMLAttributes, useId } from 'react';
+import { forwardRef, InputHTMLAttributes, ReactNode, useId } from 'react';
 import { cn } from './cn';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   helperText?: string;
   wrapperClassName?: string;
+  /** Elemento (ej. icono) posicionado a la izquierda del input */
+  leftIcon?: ReactNode;
+  /** Elemento (ej. icono) posicionado a la derecha del input */
+  rightIcon?: ReactNode;
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, error, helperText, className, id, wrapperClassName, ...rest },
+  { label, error, helperText, className, id, wrapperClassName, leftIcon, rightIcon, ...rest },
   ref,
 ) {
   const reactId = useId();
@@ -25,22 +29,42 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           {label}
         </label>
       ) : null}
-      <input
-        id={inputId}
-        ref={ref}
-        aria-invalid={error ? 'true' : undefined}
-        aria-describedby={describedBy}
-        className={cn(
-          'w-full px-4 py-3 rounded-[10px] text-sm bg-[var(--bg-input)] text-[var(--text-primary)]',
-          'border transition-all outline-none',
-          error
-            ? 'border-[var(--danger)] focus:ring-2 focus:ring-[var(--danger)]/20'
-            : 'border-[var(--border)] focus:border-[var(--border-focus)] focus:ring-2 focus:ring-black/5',
-          'placeholder:text-[var(--text-muted)] disabled:opacity-60 disabled:cursor-not-allowed',
-          className,
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        {leftIcon && (
+          <span style={{
+            position: 'absolute', left: '12px', display: 'flex', alignItems: 'center',
+            color: 'var(--text-muted)', pointerEvents: 'none',
+          }}>
+            {leftIcon}
+          </span>
         )}
-        {...rest}
-      />
+        <input
+          id={inputId}
+          ref={ref}
+          aria-invalid={error ? 'true' : undefined}
+          aria-describedby={describedBy}
+          className={cn(
+            'w-full py-3 rounded-[10px] text-sm bg-[var(--bg-input)] text-[var(--text-primary)]',
+            'border transition-all outline-none',
+            leftIcon  ? 'pl-9 pr-4' : 'px-4',
+            rightIcon ? 'pr-9' : '',
+            error
+              ? 'border-[var(--danger)] focus:ring-2 focus:ring-[var(--danger)]/20'
+              : 'border-[var(--border)] focus:border-[var(--border-focus)] focus:ring-2 focus:ring-black/5',
+            'placeholder:text-[var(--text-muted)] disabled:opacity-60 disabled:cursor-not-allowed',
+            className,
+          )}
+          {...rest}
+        />
+        {rightIcon && (
+          <span style={{
+            position: 'absolute', right: '12px', display: 'flex', alignItems: 'center',
+            color: 'var(--text-muted)', pointerEvents: 'none',
+          }}>
+            {rightIcon}
+          </span>
+        )}
+      </div>
       {error ? (
         <p id={`${inputId}-error`} className="mt-1 text-xs text-[var(--danger)]">
           {error}
@@ -53,3 +77,4 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     </div>
   );
 });
+
