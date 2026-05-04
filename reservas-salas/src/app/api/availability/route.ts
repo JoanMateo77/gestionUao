@@ -30,10 +30,12 @@ export async function GET(req: Request) {
     const fechaFin = new Date(fechas[fechas.length - 1] + 'T23:59:59.999Z');
 
     const [salas, reservasRaw] = await Promise.all([
+      // CP-003 E4: incluir TAMBIÉN salas deshabilitadas para mostrarlas como "no disponible"
+      // (no las filtramos por habilitada para que el usuario vea que existen pero no puede reservar)
       prisma.sala.findMany({
-        where: { facultadId: session.user.facultadId, habilitada: true },
-        select: { id: true, nombre: true, ubicacion: true, capacidad: true },
-        orderBy: { nombre: 'asc' },
+        where: { facultadId: session.user.facultadId },
+        select: { id: true, nombre: true, ubicacion: true, capacidad: true, habilitada: true },
+        orderBy: [{ habilitada: 'desc' }, { nombre: 'asc' }],
       }),
       prisma.reserva.findMany({
         where: {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
-import { ChevronLeft, ChevronRight, CalendarDays, MapPin, Users } from 'lucide-react';
+import { CalendarDays } from 'lucide-react';
 
 /* ─── Tipos ─── */
 interface Sala {
@@ -10,6 +10,7 @@ interface Sala {
   nombre: string;
   ubicacion: string | null;
   capacidad: number;
+  habilitada: boolean; // CP-003 E4
 }
 
 interface ReservaSlot {
@@ -23,9 +24,6 @@ interface ReservaSlot {
 }
 
 /* ─── Constantes ─── */
-const DIAS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio',
-  'agosto','septiembre','octubre','noviembre','diciembre'];
 
 /** Franjas de 30 min: 07:00 … 21:00 (la última reservable es hasta 21:30) */
 function generarFranjas(): string[] {
@@ -46,14 +44,6 @@ function getLunes(date: Date): Date {
   d.setUTCDate(d.getUTCDate() + diff);
   d.setUTCHours(0, 0, 0, 0);
   return d;
-}
-
-function getDiasSemana(lunes: Date): Date[] {
-  return Array.from({ length: 5 }, (_, i) => {
-    const d = new Date(lunes);
-    d.setUTCDate(lunes.getUTCDate() + i);
-    return d;
-  });
 }
 
 function toYMD(d: Date): string {
@@ -101,8 +91,6 @@ export default function DisponibilidadPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
-  const dias = getDiasSemana(lunes);
-
   /* ─── Fetch ─── */
   const fetchData = useCallback(async () => {
     if (status !== 'authenticated') return;
@@ -141,8 +129,6 @@ export default function DisponibilidadPage() {
   /* ─── Helpers ─── */
   const getReserva = (salaId: number, fecha: Date, slot: string) =>
     reservas.find((r) => r.salaId === salaId && r.fecha === toYMD(fecha) && franjaOcupada(slot, r));
-
-  const diaSelStr = toYMD(diaSeleccionado);
 
   if (status === 'loading') {
     return <div style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}><div className="spinner" /></div>;
@@ -196,8 +182,12 @@ export default function DisponibilidadPage() {
           Disponible
         </span>
         <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <span style={{ width: '16px', height: '16px', borderRadius: '3px', background: '#ef4444', display: 'inline-block' }} />
-          No disponible
+          <span style={{ width: '16px', height: '16px', borderRadius: '3px', background: '#dc2626', display: 'inline-block' }} />
+          Reservada
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <span style={{ width: '16px', height: '16px', borderRadius: '3px', background: 'repeating-linear-gradient(-45deg, #d1d5db, #d1d5db 6px, #9ca3af 6px, #9ca3af 12px)', display: 'inline-block' }} />
+          Sala deshabilitada
         </span>
       </div>
 
@@ -224,10 +214,25 @@ export default function DisponibilidadPage() {
               Espacio
             </div>
             {salas.map((sala) => (
-              <div key={sala.id} style={{ height: '54px', padding: '0 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{ fontSize: '0.9rem', color: '#2563eb', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div key={sala.id} style={{
+                height: '54px', padding: '0 16px',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                opacity: sala.habilitada ? 1 : 0.5,
+                background: sala.habilitada ? 'transparent' : '#f3f4f6',
+              }}>
+                <div style={{ fontSize: '0.9rem', color: sala.habilitada ? '#2563eb' : '#6b7280', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
                   {sala.nombre}
                 </div>
+                {!sala.habilitada && (
+                  <span style={{
+                    fontSize: '0.65rem', fontWeight: 700, color: '#6b7280',
+                    background: '#e5e7eb', padding: '2px 6px', borderRadius: '4px',
+                    textTransform: 'uppercase', letterSpacing: '0.3px',
+                  }}>
+                    No disponible
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -252,18 +257,26 @@ export default function DisponibilidadPage() {
 
                {/* Filas: Disponibilidad por Sala */}
                {salas.map((sala) => (
-                 <div key={sala.id} style={{ height: '54px', display: 'flex', borderBottom: '1px solid var(--border)' }}>
+                 <div key={sala.id} style={{ height: '54px', display: 'flex', borderBottom: '1px solid var(--border)', background: !sala.habilitada ? '#f3f4f6' : 'transparent' }}>
                    {FRANJAS.map((slot) => {
                      const reserva = getReserva(sala.id, diaSeleccionado, slot);
                      const ocupada = !!reserva;
-                     
-                     const bg = ocupada 
-                       ? '#dc2626' // Rojo sólido
-                       : 'repeating-linear-gradient(-45deg, #22c55e, #22c55e 8px, #16a34a 8px, #16a34a 16px)'; // Verde rayado
-                     
+                     const deshabilitada = !sala.habilitada;
+
+                     // CP-003 E4: salas deshabilitadas se ven como "no disponible" (gris rayado)
+                     const bg = deshabilitada
+                       ? 'repeating-linear-gradient(-45deg, #d1d5db, #d1d5db 8px, #9ca3af 8px, #9ca3af 16px)' // Gris rayado
+                       : ocupada
+                         ? '#dc2626' // Rojo sólido (reservada)
+                         : 'repeating-linear-gradient(-45deg, #22c55e, #22c55e 8px, #16a34a 8px, #16a34a 16px)'; // Verde rayado (libre)
+
                      return (
-                       <div key={slot} 
+                       <div key={slot}
                             onClick={(e) => {
+                              if (deshabilitada) {
+                                e.stopPropagation();
+                                return; // no permite reservar si la sala está deshabilitada
+                              }
                               if(ocupada) {
                                 e.stopPropagation();
                                 setTooltip({ reserva, x: e.clientX, y: e.clientY });
@@ -273,18 +286,19 @@ export default function DisponibilidadPage() {
                                 setBookingError('');
                               }
                             }}
-                            style={{ 
-                              width: '45px', flexShrink: 0, 
+                            title={deshabilitada ? 'Sala deshabilitada por administración' : ocupada ? 'Reservada' : 'Disponible — click para reservar'}
+                            style={{
+                              width: '45px', flexShrink: 0,
                               borderRight: '1px dashed #e5e7eb',
                               padding: '6px 1px',
-                              cursor: 'pointer',
+                              cursor: deshabilitada ? 'not-allowed' : 'pointer',
                             }}>
                          <div style={{
-                           width: '100%', height: '100%', 
+                           width: '100%', height: '100%',
                            background: bg,
                            borderRadius: '2px',
                            transition: 'opacity 0.2s',
-                           opacity: ocupada ? 0.95 : 1,
+                           opacity: ocupada || deshabilitada ? 0.85 : 1,
                          }} />
                        </div>
                      );
@@ -363,7 +377,7 @@ export default function DisponibilidadPage() {
                   setBookingModal(null);
                   fetchData(); // reload availability
                 }
-              } catch(err) {
+              } catch {
                 setBookingError('Error de conexión al servidor');
               } finally {
                 setBookingLoading(false);
