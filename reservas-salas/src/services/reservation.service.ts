@@ -3,6 +3,8 @@ import { reservationRepository } from '@/repositories/reservation.repository';
 import { roomRepository } from '@/repositories/room.repository';
 import { createReservationSchema, adjustReservationSchema } from '@/lib/validations/reservation.schema';
 import { audit } from '@/lib/audit';
+import { notificationService, buildEmailPayload } from '@/services/notification.service';
+import { prisma } from '@/lib/prisma';
 import type { EstadoReserva } from '@prisma/client';
 
 /**
@@ -214,6 +216,45 @@ export const reservationService = {
       datosNuevos: { salaId, fecha: validated.fecha, horaInicio: horaInicioStr, horaFin: horaFinStr, motivo: validated.motivo },
       ipAddress: ip,
     });
+
+    // HU-011: notificar al titular si la SECRETARIA modificó la reserva (in-app + email)
+    if (reserva.usuarioId !== usuarioId) {
+      const titular = await prisma.usuario.findUnique({
+        where: { id: reserva.usuarioId },
+        select: { nombre: true, correoInstitucional: true },
+      });
+      const sala = await prisma.sala.findUnique({
+        where: { id: salaId },
+        select: { nombre: true },
+      });
+      if (titular && sala) {
+        const fmtFecha = (d: Date) => d.toISOString().split('T')[0];
+        const titulo = `Tu reserva en ${sala.nombre} fue ajustada`;
+        const mensaje =
+          `Una secretaria modificó tu reserva. Antes: ${fmtFecha(reserva.fecha)} ${datosAnteriores.horaInicio}-${datosAnteriores.horaFin}. ` +
+          `Ahora: ${fmtFecha(fecha)} ${horaInicioStr}-${horaFinStr}. ` +
+          `Motivo: ${validated.motivo ?? reserva.motivo ?? '(sin motivo)'}`;
+
+        await notificationService.create({
+          usuarioId: reserva.usuarioId,
+          tipo: 'RESERVA_AJUSTADA',
+          titulo,
+          mensaje,
+          metadata: {
+            reservaId,
+            salaId,
+            salaNombre: sala.nombre,
+            antes: { fecha: fmtFecha(reserva.fecha), horaInicio: datosAnteriores.horaInicio, horaFin: datosAnteriores.horaFin },
+            ahora: { fecha: fmtFecha(fecha), horaInicio: horaInicioStr, horaFin: horaFinStr },
+          },
+          email: buildEmailPayload(titular.correoInstitucional, titulo, mensaje, {
+            'Sala': sala.nombre,
+            'Antes': `${fmtFecha(reserva.fecha)} ${datosAnteriores.horaInicio}-${datosAnteriores.horaFin}`,
+            'Ahora': `${fmtFecha(fecha)} ${horaInicioStr}-${horaFinStr}`,
+          }),
+        });
+      }
+    }
 
     return updated;
   },

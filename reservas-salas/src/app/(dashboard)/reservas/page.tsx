@@ -5,11 +5,11 @@ import { useSession } from 'next-auth/react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
-  Plus, CalendarDays, XCircle, Clock, MapPin, User, Edit3, Filter, Users,
+  Plus, CalendarDays, XCircle, Clock, MapPin, User, Edit3, Filter, Users, Eye, History,
 } from 'lucide-react';
 import {
   ConfirmDialog, SkeletonCard, EmptyState, Button, Input, Modal, Card,
-  ResourceChip, AvailabilityTimeline,
+  ResourceChip, AvailabilityTimeline, AuditLogModal,
 } from '@/components/ui';
 
 interface SalaRecurso {
@@ -98,9 +98,11 @@ export default function ReservasPage() {
 
   // Filtros SECRETARIA (HU-13)
   const [filtroSalaId, setFiltroSalaId] = useState<string>('');
+  const [filtroUsuarioId, setFiltroUsuarioId] = useState<string>(''); // CP-013 E3
   const [filtroFechaInicio, setFiltroFechaInicio] = useState('');
   const [filtroFechaFin, setFiltroFechaFin] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [usuariosFacultad, setUsuariosFacultad] = useState<Array<{ id: number; nombre: string; correoInstitucional: string; rol: string }>>([]);
 
   // Modal crear reserva
   const [showModal, setShowModal] = useState(false);
@@ -116,14 +118,20 @@ export default function ReservasPage() {
   const [cancelId, setCancelId] = useState<number | null>(null);
   const [cancelLoading, setCancelLoading] = useState(false);
 
+  // CP-012 E3: modal de detalle de reserva
+  const [detalleReserva, setDetalleReserva] = useState<Reserva | null>(null);
+  // CP-011 E5: modal de historial de auditoría de la reserva
+  const [auditReservaId, setAuditReservaId] = useState<{ id: number; sala: string } | null>(null);
+
   const buildQuery = useCallback(() => {
     const q = new URLSearchParams({ page: String(page), limit: '20' });
     if (filter) q.set('estado', filter);
     if (isSecretaria && filtroSalaId) q.set('salaId', filtroSalaId);
+    if (isSecretaria && filtroUsuarioId) q.set('usuarioId', filtroUsuarioId); // CP-013 E3
     if (isSecretaria && filtroFechaInicio) q.set('fechaInicio', filtroFechaInicio);
     if (isSecretaria && filtroFechaFin) q.set('fechaFin', filtroFechaFin);
     return q;
-  }, [page, filter, isSecretaria, filtroSalaId, filtroFechaInicio, filtroFechaFin]);
+  }, [page, filter, isSecretaria, filtroSalaId, filtroUsuarioId, filtroFechaInicio, filtroFechaFin]);
 
   const fetchReservas = useCallback(async () => {
     try {
@@ -144,6 +152,15 @@ export default function ReservasPage() {
 
   useEffect(() => { fetchReservas(); }, [fetchReservas]);
   useEffect(() => { fetchSalas(); }, [fetchSalas]);
+
+  // Cargar usuarios de la facultad para filtro por profesor (CP-013 E3)
+  useEffect(() => {
+    if (!isSecretaria) return;
+    fetch('/api/users')
+      .then((r) => r.ok ? r.json() : [])
+      .then((data) => Array.isArray(data) && setUsuariosFacultad(data))
+      .catch(() => {});
+  }, [isSecretaria]);
 
   // Preselección desde query (?salaId=X&new=1) al entrar desde el catálogo
   useEffect(() => {
@@ -246,13 +263,13 @@ export default function ReservasPage() {
   };
 
   const clearFilters = () => {
-    setFiltroSalaId(''); setFiltroFechaInicio(''); setFiltroFechaFin(''); setPage(1);
+    setFiltroSalaId(''); setFiltroUsuarioId(''); setFiltroFechaInicio(''); setFiltroFechaFin(''); setPage(1);
   };
 
   const reservas = data?.reservas || [];
   const activas = reservas.filter((r) => r.estado === 'CONFIRMADA').length;
   const historial = reservas.filter((r) => r.estado === 'CANCELADA').length;
-  const hasActiveFilters = filtroSalaId || filtroFechaInicio || filtroFechaFin;
+  const hasActiveFilters = filtroSalaId || filtroUsuarioId || filtroFechaInicio || filtroFechaFin;
   const salaSel = salas.find((s) => s.id === Number(form.salaId));
 
   return (
@@ -303,6 +320,16 @@ export default function ReservasPage() {
                 <option value="">Todas las salas</option>
                 {todasSalas.map((s) => (
                   <option key={s.id} value={s.id}>{s.nombre}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              {/* CP-013 E3: filtro por profesor/usuario */}
+              <label className="label" style={{ fontSize: '0.75rem' }}>Profesor / Usuario</label>
+              <select className="input-field" value={filtroUsuarioId} onChange={(e) => { setFiltroUsuarioId(e.target.value); setPage(1); }}>
+                <option value="">Todos los usuarios</option>
+                {usuariosFacultad.map((u) => (
+                  <option key={u.id} value={u.id}>{u.nombre} ({u.rol === 'SECRETARIA' ? 'Sec' : 'Doc'})</option>
                 ))}
               </select>
             </div>
@@ -422,6 +449,28 @@ export default function ReservasPage() {
               )}
 
               <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+                {/* CP-012 E3: ver detalle completo de la reserva */}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setDetalleReserva(r)}
+                  leftIcon={<Eye size={13} />}
+                  title="Ver detalle de la reserva"
+                >
+                  Detalle
+                </Button>
+                {/* CP-011 E5: ver historial de cambios (solo SECRETARIA) */}
+                {isSecretaria && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setAuditReservaId({ id: r.id, sala: r.sala.nombre })}
+                    title="Ver historial de cambios"
+                    aria-label="Ver historial de cambios"
+                  >
+                    <History size={13} />
+                  </Button>
+                )}
                 {r.estado === 'CONFIRMADA' && isSecretaria && (
                   <Button
                     variant="secondary"
@@ -670,6 +719,68 @@ export default function ReservasPage() {
         variant="danger"
         loading={cancelLoading}
       />
+
+      {/* CP-012 E3: Modal de detalle de reserva */}
+      {detalleReserva && (
+        <Modal open={!!detalleReserva} onClose={() => setDetalleReserva(null)} title="Detalle de la reserva">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Sala</div>
+              <div style={{ fontSize: '0.95rem', fontWeight: 600 }}>{detalleReserva.sala.nombre}</div>
+              {detalleReserva.sala.ubicacion && (
+                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginTop: '2px' }}>{detalleReserva.sala.ubicacion}</div>
+              )}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Fecha</div>
+                <div style={{ fontSize: '0.85rem' }}>{detalleReserva.fecha}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Horario</div>
+                <div style={{ fontSize: '0.85rem' }}>{detalleReserva.horaInicio} – {detalleReserva.horaFin}</div>
+              </div>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Estado</div>
+              <span className={`badge ${detalleReserva.estado === 'CONFIRMADA' ? 'badge-success' : 'badge-danger'}`}>
+                {detalleReserva.estado}
+              </span>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Reservada por</div>
+              <div style={{ fontSize: '0.85rem' }}>
+                {detalleReserva.usuario.nombre}
+                {detalleReserva.usuario.correoInstitucional && (
+                  <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginLeft: '6px' }}>
+                    ({detalleReserva.usuario.correoInstitucional})
+                  </span>
+                )}
+              </div>
+            </div>
+            {detalleReserva.motivo && (
+              <div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Motivo</div>
+                <div style={{ fontSize: '0.85rem' }}>{detalleReserva.motivo}</div>
+              </div>
+            )}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <Button variant="secondary" onClick={() => setDetalleReserva(null)}>Cerrar</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* CP-011 E5: Modal historial de cambios de la reserva */}
+      {auditReservaId && (
+        <AuditLogModal
+          open={!!auditReservaId}
+          onClose={() => setAuditReservaId(null)}
+          entidad="RESERVA"
+          entidadId={auditReservaId.id}
+          titulo={`Historial de la reserva en "${auditReservaId.sala}"`}
+        />
+      )}
     </div>
   );
 }

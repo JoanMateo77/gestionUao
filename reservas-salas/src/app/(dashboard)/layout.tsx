@@ -6,18 +6,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LogOut, User, Menu, X } from 'lucide-react';
 import Image from 'next/image';
-import { ThemeToggle } from '@/components/ui';
+import { ThemeToggle, NotificationBell } from '@/components/ui';
 
 const navItems = {
   DOCENTE: [
     { href: '/salas', label: 'Mis Salas' },
     { href: '/disponibilidad', label: 'Disponibilidad' },
     { href: '/reservas', label: 'Mis Reservas' },
+    { href: '/notificaciones', label: 'Notificaciones' },
   ],
   SECRETARIA: [
     { href: '/salas', label: 'Gestión de Salas' },
     { href: '/disponibilidad', label: 'Disponibilidad' },
     { href: '/reservas', label: 'Reservas' },
+    { href: '/notificaciones', label: 'Notificaciones' },
     { href: '/reportes', label: 'Reportes' },
   ],
 };
@@ -146,6 +148,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               </div>
             </div>
+            <NotificationBell />
             <ThemeToggle />
             <button
               type="button"
@@ -236,6 +239,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {session.user.email}
             </div>
           </div>
+          <NotificationBell />
           <ThemeToggle />
         </div>
       </aside>

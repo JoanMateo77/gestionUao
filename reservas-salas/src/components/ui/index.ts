@@ -10,6 +10,8 @@ export { EmptyState } from './EmptyState';
 export { Breadcrumbs } from './Breadcrumbs';
 export type { BreadcrumbItem } from './Breadcrumbs';
 export { ThemeToggle } from './ThemeToggle';
+export { NotificationBell } from './NotificationBell';
+export { AuditLogModal } from './AuditLogModal';
 export { ResourceIcon } from './ResourceIcon';
 export { ResourceChip } from './ResourceChip';
 export { AvailabilityTimeline } from './AvailabilityTimeline';

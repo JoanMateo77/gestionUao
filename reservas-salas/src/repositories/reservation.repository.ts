@@ -144,7 +144,15 @@ export const reservationRepository = {
 
     const afectadas = await prisma.reserva.findMany({
       where: { salaId, estado: 'CONFIRMADA', fecha: { gte: today } },
-      select: { id: true },
+      select: {
+        id: true,
+        usuarioId: true,
+        fecha: true,
+        horaInicio: true,
+        horaFin: true,
+        sala: { select: { nombre: true } },
+        usuario: { select: { nombre: true, correoInstitucional: true } },
+      },
     });
 
     if (afectadas.length > 0) {
@@ -154,7 +162,7 @@ export const reservationRepository = {
       });
     }
 
-    return afectadas.length;
+    return afectadas;
   },
 
   /** Obtener reservas de una sala en una fecha (para calendario) */
