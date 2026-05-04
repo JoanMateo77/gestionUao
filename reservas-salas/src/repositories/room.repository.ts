@@ -1,16 +1,48 @@
 // src/repositories/room.repository.ts
 import { prisma } from '@/lib/prisma';
-import type { Sala } from '@prisma/client';
+import type { Prisma, Sala } from '@prisma/client';
+
+export type RoomFilters = {
+  capacidadMin?: number;
+  capacidadMax?: number;
+  edificio?: string;
+  recursos?: number[];
+  search?: string;
+  soloHabilitadas?: boolean;
+};
 
 export const roomRepository = {
-  /** Listar salas de una facultad */
-  async findByFacultad(facultadId: number): Promise<Sala[]> {
+  /** Listar salas de una facultad con filtros opcionales */
+  async findByFacultad(facultadId: number, filters: RoomFilters = {}): Promise<Sala[]> {
+    const where: Prisma.SalaWhereInput = { facultadId };
+
+    if (filters.soloHabilitadas) where.habilitada = true;
+
+    const capacidad: Prisma.IntFilter = {};
+    if (filters.capacidadMin != null) capacidad.gte = filters.capacidadMin;
+    if (filters.capacidadMax != null) capacidad.lte = filters.capacidadMax;
+    if (Object.keys(capacidad).length > 0) where.capacidad = capacidad;
+
+    if (filters.edificio) {
+      where.ubicacion = { contains: filters.edificio, mode: 'insensitive' };
+    }
+    if (filters.search) {
+      where.OR = [
+        { nombre: { contains: filters.search, mode: 'insensitive' } },
+        { ubicacion: { contains: filters.search, mode: 'insensitive' } },
+      ];
+    }
+    // AND por cada recurso: la sala debe contener TODOS los recursos pedidos
+    if (filters.recursos && filters.recursos.length > 0) {
+      where.AND = filters.recursos.map((rid) => ({
+        salaRecursos: { some: { recursoId: rid } },
+      }));
+    }
+
     return prisma.sala.findMany({
-      where: { facultadId },
+      where,
       include: {
-        salaRecursos: {
-          include: { recurso: true },
-        },
+        salaRecursos: { include: { recurso: true } },
       },
       orderBy: { nombre: 'asc' },
     });
@@ -57,6 +89,20 @@ export const roomRepository = {
     return prisma.sala.update({
       where: { id },
       data: { habilitada },
+    });
+  },
+
+  /**
+   * Contar salones registrados en un edificio y piso específicos.
+   * Usa el prefijo de ubicación generado por `componerUbicacion`, e.g. "Aulas 3, Piso 2,".
+   * La coma final es necesaria para no contar "Piso 20" como "Piso 2".
+   */
+  async countByEdificioPiso(edificioLabel: string, piso: number): Promise<number> {
+    const prefijo = `${edificioLabel}, Piso ${piso},`;
+    return prisma.sala.count({
+      where: {
+        ubicacion: { startsWith: prefijo, mode: 'insensitive' },
+      },
     });
   },
 };

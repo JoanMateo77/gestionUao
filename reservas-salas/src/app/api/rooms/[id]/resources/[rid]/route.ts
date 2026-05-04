@@ -5,6 +5,44 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { resourceService } from '@/services/resource.service';
 
+export async function PATCH(
+  req: Request,
+  { params }: { params: { id: string; rid: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'No autenticado' }, { status: 401 });
+    }
+
+    if (session.user.rol !== 'SECRETARIA') {
+      return NextResponse.json({ error: 'Sin permiso' }, { status: 403 });
+    }
+
+    const { cantidad } = await req.json();
+    if (!cantidad || Number(cantidad) < 1) {
+      return NextResponse.json({ error: 'La cantidad mínima es 1' }, { status: 400 });
+    }
+
+    const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+
+    const updated = await resourceService.updateCantidad(
+      Number(params.rid),
+      Number(cantidad),
+      session.user.facultadId,
+      session.user.id,
+      ip
+    );
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    if (error instanceof Error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 });
+  }
+}
+
 export async function DELETE(
   req: Request,
   { params }: { params: { id: string; rid: string } }
