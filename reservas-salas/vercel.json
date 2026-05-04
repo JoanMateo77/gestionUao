@@ -2,10 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
+      "master": true,
       "mod/auth": false,
       "mod/reservas": false,
       "mod/salas": false,
-      "mod/reportes": false
+      "mod/reportes": false,
+      "fix/auth-logo-uao": false
     }
   }
 }
