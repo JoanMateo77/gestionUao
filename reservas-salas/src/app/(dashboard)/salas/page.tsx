@@ -5,12 +5,12 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
   Plus, Edit3, Power, PowerOff, Cpu,
-  Users, MapPin, DoorOpen, CalendarCheck,
+  Users, MapPin, DoorOpen, CalendarCheck, History,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
   SkeletonCard, EmptyState, Button, Input, Modal, Card,
-  FilterBar, ResourceChip,
+  FilterBar, ResourceChip, AuditLogModal,
   type RecursoUI, type RoomFilters,
 } from '@/components/ui';
 import { useDebounce } from '@/lib/hooks/useDebounce';
@@ -50,6 +50,8 @@ export default function SalasPage() {
   const debouncedFilters = useDebounce(filters, 300);
 
   const [showModal, setShowModal] = useState(false);
+  const [modalError, setModalError] = useState<string>(''); // CP-004 E2 — error visible en modal
+  const [auditSalaId, setAuditSalaId] = useState<{ id: number; nombre: string } | null>(null); // CP-006 E3 — modal historial
   const [editingSala, setEditingSala] = useState<Sala | null>(null);
   const [form, setForm] = useState({
     nombre: '', ubicacion: '', capacidad: '10',
@@ -90,6 +92,7 @@ export default function SalasPage() {
   const handleCreate = () => {
     setEditingSala(null);
     setForm({ nombre: '', ubicacion: '', capacidad: '10', edificioId: '', piso: '', numero: '', descripcion: '' });
+    setModalError('');
     setShowModal(true);
   };
 
@@ -101,11 +104,13 @@ export default function SalasPage() {
       capacidad: String(sala.capacidad),
       edificioId: '', piso: '', numero: '', descripcion: '',
     });
+    setModalError('');
     setShowModal(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError(''); // limpiar error previo
 
     let payload: { nombre: string; ubicacion: string; capacidad: number };
     if (editingSala) {
@@ -151,21 +156,43 @@ export default function SalasPage() {
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) { toast.error(data.error || 'Error'); return; }
+      if (!res.ok) {
+        // CP-004 E2: mostrar el error inline en el modal (no solo toast)
+        setModalError(data.error || 'Error al guardar la sala');
+        return;
+      }
       toast.success(editingSala ? 'Sala actualizada' : 'Salón registrado correctamente');
-      setShowModal(false); fetchSalas(debouncedFilters);
-    } catch { toast.error('Error de conexión'); }
+      setShowModal(false); setModalError(''); fetchSalas(debouncedFilters);
+    } catch {
+      setModalError('Error de conexión con el servidor');
+    }
     finally { setSaving(false); }
   };
 
   const handleToggleStatus = async (sala: Sala) => {
+    // CP-006 E4: si vamos a DESHABILITAR, avisar primero que se cancelarán reservas activas
+    if (sala.habilitada) {
+      const confirmar = window.confirm(
+        `¿Deseas deshabilitar la sala "${sala.nombre}"?\n\n` +
+        `Si tiene reservas activas (presentes o futuras), serán CANCELADAS automáticamente y se notificará a los usuarios afectados (in-app + email).`
+      );
+      if (!confirmar) return;
+    }
     try {
       const res = await fetch(`/api/rooms/${sala.id}/status`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ habilitada: !sala.habilitada }),
       });
       if (!res.ok) { toast.error('Error'); return; }
-      toast.success(sala.habilitada ? 'Sala deshabilitada' : 'Sala habilitada');
+      const body = await res.json().catch(() => ({}));
+      const canceladas = body?.reservasCanceladas ?? 0;
+      if (sala.habilitada) {
+        toast.success(canceladas > 0
+          ? `Sala deshabilitada — ${canceladas} reserva(s) cancelada(s) y notificada(s)`
+          : 'Sala deshabilitada');
+      } else {
+        toast.success('Sala habilitada');
+      }
       fetchSalas(debouncedFilters);
     } catch { toast.error('Error de conexión'); }
   };
@@ -215,6 +242,15 @@ export default function SalasPage() {
   function renderFormCrear() {
     return (
       <form onSubmit={handleSubmit}>
+        {modalError && (
+          <div style={{
+            background: 'var(--danger-bg)', color: 'var(--danger)',
+            padding: '10px 14px', borderRadius: '8px', marginBottom: '12px',
+            fontSize: '0.85rem', border: '1px solid var(--danger)',
+          }}>
+            ⚠️ {modalError}
+          </div>
+        )}
         <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', marginBottom: '14px' }}>
           Selecciona el edificio. Los campos se ajustan a su jerarquía real (las Aulas tienen salones numerados, los Torreones son únicos por piso, los demás edificios tienen salas con nombre propio).
         </p>
@@ -393,6 +429,15 @@ export default function SalasPage() {
   function renderFormEditar() {
     return (
       <form onSubmit={handleSubmit}>
+        {modalError && (
+          <div style={{
+            background: 'var(--danger-bg)', color: 'var(--danger)',
+            padding: '10px 14px', borderRadius: '8px', marginBottom: '12px',
+            fontSize: '0.85rem', border: '1px solid var(--danger)',
+          }}>
+            ⚠️ {modalError}
+          </div>
+        )}
         <Input
           label="Nombre de la sala"
           value={form.nombre}
@@ -541,8 +586,27 @@ export default function SalasPage() {
               <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
                 {isSecretaria ? (
                   <>
-                    <Button variant="secondary" size="sm" onClick={() => handleEdit(sala)} leftIcon={<Edit3 size={13} />} fullWidth>
+                    {/* CP-005 E4: solo permitir Editar si la sala está habilitada */}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => handleEdit(sala)}
+                      leftIcon={<Edit3 size={13} />}
+                      fullWidth
+                      disabled={!sala.habilitada}
+                      title={!sala.habilitada ? 'Habilita la sala primero para poder editarla' : 'Editar sala'}
+                    >
                       Editar
+                    </Button>
+                    {/* CP-006 E3: ver historial de cambios */}
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      title="Ver historial de cambios"
+                      aria-label="Ver historial de cambios"
+                      onClick={() => setAuditSalaId({ id: sala.id, nombre: sala.nombre })}
+                    >
+                      <History size={13} />
                     </Button>
                     <Button
                       variant={sala.habilitada ? 'danger' : 'secondary'}
@@ -581,6 +645,17 @@ export default function SalasPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} title={editingSala ? 'Editar Sala' : 'Registrar Salón'}>
         {editingSala ? renderFormEditar() : renderFormCrear()}
       </Modal>
+
+      {/* CP-006 E3: modal de historial de cambios de sala */}
+      {auditSalaId && (
+        <AuditLogModal
+          open={!!auditSalaId}
+          onClose={() => setAuditSalaId(null)}
+          entidad="SALA"
+          entidadId={auditSalaId.id}
+          titulo={`Historial de "${auditSalaId.nombre}"`}
+        />
+      )}
     </div>
   );
 }
