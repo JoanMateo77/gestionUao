@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BookOpen, LogOut, User, Menu, X } from 'lucide-react';
+import { LogOut, User, Menu, X } from 'lucide-react';
+import Image from 'next/image';
 import { ThemeToggle } from '@/components/ui';
 
 const navItems = {
@@ -79,12 +80,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="flex items-center gap-2.5 no-underline min-w-0"
               style={{ color: 'var(--text-primary)' }}
             >
-              <div
-                className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
-                style={{ background: 'var(--primary)' }}
-              >
-                <BookOpen size={18} style={{ color: 'var(--primary-fg)' }} />
-              </div>
+              <Image
+                src="/UAO-LOGO-NUEVO_Mesa-de-trabajo-1-1-1-1.png"
+                alt="Logo UAO"
+                width={80}
+                height={32}
+                priority
+                className="shrink-0"
+                style={{ objectFit: 'contain' }}
+              />
               <div className="hidden sm:block min-w-0">
                 <div className="font-bold text-sm leading-tight truncate">
                   Sistema de Gestión de Salas
@@ -177,12 +181,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         <div className="flex items-center justify-between px-4 h-16 border-b" style={{ borderColor: 'var(--border)' }}>
           <div className="flex items-center gap-2.5 min-w-0">
-            <div
-              className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
-              style={{ background: 'var(--primary)' }}
-            >
-              <BookOpen size={18} style={{ color: 'var(--primary-fg)' }} />
-            </div>
+            <Image
+              src="/UAO-LOGO-NUEVO_Mesa-de-trabajo-1-1-1-1.png"
+              alt="Logo UAO"
+              width={64}
+              height={26}
+              priority
+              className="shrink-0"
+              style={{ objectFit: 'contain' }}
+            />
             <div className="font-bold text-sm truncate">Menú</div>
           </div>
           <button
