@@ -66,22 +66,23 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="sticky top-0 z-30 border-b"
         style={{ background: 'var(--bg-secondary)', borderColor: 'var(--border)' }}
       >
-        <div className="max-w-[1200px] mx-auto flex items-center justify-between h-16 px-4 sm:px-6">
-          <div className="flex items-center gap-3 md:gap-8 min-w-0">
+        <div className="relative max-w-[1200px] mx-auto flex items-center justify-between gap-4 h-16 px-4 sm:px-6">
+          {/* Logo y Botón Menú */}
+          <div className="flex items-center gap-3 min-w-0 z-10">
             <button
               type="button"
               onClick={() => setDrawerOpen(true)}
               aria-label="Abrir menú de navegación"
               aria-expanded={drawerOpen}
               aria-controls="mobile-drawer"
-              className="md:hidden inline-flex items-center justify-center p-2 rounded-lg text-[var(--text-primary)] hover:bg-[var(--bg-input)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+              className="xl:hidden inline-flex items-center justify-center p-2 rounded-lg text-[var(--text-primary)] hover:bg-[var(--bg-input)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
             >
               <Menu size={20} />
             </button>
 
             <Link
               href="/reservas"
-              className="flex items-center gap-2.5 no-underline min-w-0"
+              className="flex items-center gap-2.5 no-underline min-w-0 shrink-0"
               style={{ color: 'var(--text-primary)' }}
             >
               <Image
@@ -102,8 +103,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
               </div>
             </Link>
+          </div>
 
-            <nav className="hidden md:flex gap-1" aria-label="Navegación principal">
+          {/* Enlaces de Navegación Centrados Absolutamente */}
+          <div className="hidden xl:flex absolute inset-0 justify-center items-center pointer-events-none">
+            <nav className="flex items-center mr-[80px] gap-1 pointer-events-auto" aria-label="Navegación principal">
               {items.map((item) => {
                 const active = isActive(item.href);
                 return (
@@ -111,7 +115,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     key={item.href}
                     href={item.href}
                     aria-current={active ? 'page' : undefined}
-                    className="px-4 py-2 rounded-lg text-[0.85rem] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
+                    className="px-2 py-2 rounded-lg text-[0.85rem] whitespace-nowrap flex items-center justify-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]"
                     style={{
                       fontWeight: active ? 600 : 400,
                       color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
@@ -125,7 +129,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </nav>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0 z-10">
             <div className="hidden sm:flex items-center gap-2.5">
               <div
                 className="w-[34px] h-[34px] rounded-full flex items-center justify-center"
@@ -169,7 +173,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {drawerOpen && (
         <div
-          className="md:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
+          className="xl:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
           onClick={() => setDrawerOpen(false)}
           aria-hidden="true"
         />
@@ -179,9 +183,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         role="dialog"
         aria-modal="true"
         aria-label="Menú de navegación"
-        className={`md:hidden fixed top-0 left-0 z-50 h-full w-72 max-w-[85vw] shadow-xl transform transition-transform duration-200 ${
-          drawerOpen ? 'translate-x-0 drawer-panel' : '-translate-x-full pointer-events-none'
-        }`}
+        className={`xl:hidden fixed top-0 left-0 z-50 h-full w-72 max-w-[85vw] shadow-xl transform transition-transform duration-200 ${drawerOpen ? 'translate-x-0 drawer-panel' : '-translate-x-full pointer-events-none'
+          }`}
         style={{ background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)' }}
       >
         <div className="flex items-center justify-between px-4 h-16 border-b" style={{ borderColor: 'var(--border)' }}>
