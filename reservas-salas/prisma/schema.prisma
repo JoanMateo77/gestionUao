@@ -63,14 +63,16 @@ model Facultad {
 }
 
 model Usuario {
-  id                  Int      @id @default(autoincrement())
-  nombre              String   @db.VarChar(100)
-  correoInstitucional String   @unique @map("correo_institucional") @db.VarChar(100)
-  passwordHash        String   @map("password_hash") @db.VarChar(255)
-  rol                 Rol      @default(DOCENTE)
-  activo              Boolean  @default(true)
-  fechaRegistro       DateTime @default(now()) @map("fecha_registro")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  id                  Int       @id @default(autoincrement())
+  nombre              String    @db.VarChar(100)
+  correoInstitucional String    @unique @map("correo_institucional") @db.VarChar(100)
+  passwordHash        String    @map("password_hash") @db.VarChar(255)
+  rol                 Rol       @default(DOCENTE)
+  activo              Boolean   @default(true)
+  fechaRegistro       DateTime  @default(now()) @map("fecha_registro")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  activeSessionId     String?   @map("active_session_id") @db.VarChar(64)
+  sessionStartedAt    DateTime? @map("session_started_at")
 
   // FK
   facultadId Int      @map("facultad_id")
