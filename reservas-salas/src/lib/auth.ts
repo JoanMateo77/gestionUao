@@ -1,4 +1,5 @@
 // src/lib/auth.ts
+import { randomUUID } from 'crypto';
 import { type NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
@@ -49,6 +50,14 @@ export const authOptions: NextAuthOptions = {
           });
         }
 
+        // Sesión única: generar sid nuevo. Esto invalida cualquier JWT
+        // emitido previamente para este usuario (incluido el de otro dispositivo).
+        const sid = randomUUID();
+        await prisma.usuario.update({
+          where: { id: usuario.id },
+          data: { activeSessionId: sid, sessionStartedAt: new Date() },
+        });
+
         return {
           id: usuario.id,
           nombre: usuario.nombre,
@@ -56,6 +65,7 @@ export const authOptions: NextAuthOptions = {
           correoInstitucional: usuario.correoInstitucional,
           rol: rolActual,
           facultadId: usuario.facultadId,
+          sid,
         };
       },
     }),
@@ -67,10 +77,24 @@ export const authOptions: NextAuthOptions = {
         token.rol = user.rol;
         token.facultadId = user.facultadId;
         token.nombre = user.nombre;
+        token.sid = user.sid;
       }
       return token;
     },
     async session({ session, token }) {
+      // Verificación de sesión activa: el sid del JWT debe coincidir con el
+      // activeSessionId persistido. Si no coincide (otro login lo sobreescribió
+      // o hubo revocación manual), devolvemos sesión vacía → el cliente queda
+      // deslogueado y el middleware redirige a /login.
+      const usuarioDb = await prisma.usuario.findUnique({
+        where: { id: Number(token.id) },
+        select: { activeSessionId: true, activo: true },
+      });
+
+      if (!usuarioDb || !usuarioDb.activo || usuarioDb.activeSessionId !== token.sid) {
+        return { ...session, user: undefined as never, expires: '1970-01-01T00:00:00.000Z' };
+      }
+
       if (session.user) {
         session.user.id = token.id;
         session.user.rol = token.rol;

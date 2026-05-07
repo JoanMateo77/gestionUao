@@ -18,6 +18,7 @@ declare module 'next-auth' {
     facultadId: number;
     nombre: string;
     correoInstitucional: string;
+    sid?: string;
   }
 }
 
@@ -27,6 +28,7 @@ declare module 'next-auth/jwt' {
     rol: 'DOCENTE' | 'SECRETARIA';
     facultadId: number;
     nombre: string;
+    sid?: string;
   }
 }
 
