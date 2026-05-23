@@ -153,6 +153,18 @@ export default function ReservasPage() {
   useEffect(() => { fetchReservas(); }, [fetchReservas]);
   useEffect(() => { fetchSalas(); }, [fetchSalas]);
 
+  // Polling cada 30s para reflejar cambios hechos en otra sesion
+  // (ej. cancelaciones/ajustes por secretaria). Se pausa con modales
+  // abiertos y cuando la pestaña esta oculta.
+  useEffect(() => {
+    const modalAbierto = showModal || adjusting !== null || cancelId !== null;
+    if (modalAbierto) return;
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchReservas();
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [fetchReservas, showModal, adjusting, cancelId]);
+
   // Cargar usuarios de la facultad para filtro por profesor (CP-013 E3)
   useEffect(() => {
     if (!isSecretaria) return;
