@@ -2,6 +2,7 @@
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { ZodError } from 'zod';
 import { authOptions } from '@/lib/auth';
 import { reservationService } from '@/services/reservation.service';
 import type { EstadoReserva } from '@prisma/client';
@@ -62,12 +63,16 @@ export async function POST(req: Request) {
 
     return NextResponse.json(reserva, { status: 201 });
   } catch (error) {
+    // ZodError trae los mensajes concretos del schema (ej. "No se pueden
+    // hacer reservas los domingos", "antes de las 7:00 AM"). Propagamos
+    // el primer issue en vez de aplastarlo a "Datos invalidos".
+    if (error instanceof ZodError) {
+      const mensaje = error.issues[0]?.message ?? 'Datos inválidos';
+      return NextResponse.json({ error: mensaje }, { status: 400 });
+    }
     if (error instanceof Error) {
       if (error.message.includes('solapamiento') || error.message.includes('R-03')) {
         return NextResponse.json({ error: error.message }, { status: 409 });
-      }
-      if (error.name === 'ZodError') {
-        return NextResponse.json({ error: 'Datos inválidos', details: error }, { status: 400 });
       }
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
