@@ -347,7 +347,9 @@ export default function DisponibilidadPage() {
             🔴 Sala ocupada
           </div>
           <div style={{ color: 'var(--text-secondary)', lineHeight: 1.8 }}>
-            <div><strong>Reservado por:</strong> {tooltip.reserva.usuario.nombre}</div>
+            {session?.user?.rol === 'SECRETARIA' && (
+              <div><strong>Reservado por:</strong> {tooltip.reserva.usuario.nombre}</div>
+            )}
             {tooltip.reserva.motivo && <div><strong>Motivo:</strong> {tooltip.reserva.motivo}</div>}
             <div><strong>Horario:</strong> {tooltip.reserva.horaInicio} – {tooltip.reserva.horaFin}</div>
           </div>
