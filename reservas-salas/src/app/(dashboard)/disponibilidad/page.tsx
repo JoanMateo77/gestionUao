@@ -70,7 +70,7 @@ function add30Mins(time: string): string {
 
 /* ─── Componente ─── */
 export default function DisponibilidadPage() {
-  const { status } = useSession({ required: true });
+  const { data: session, status } = useSession({ required: true });
 
   const hoy = new Date();
   const [lunes, setLunes] = useState<Date>(() => getLunes(hoy));
@@ -91,28 +91,43 @@ export default function DisponibilidadPage() {
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingError, setBookingError] = useState('');
 
-  /* ─── Fetch ─── */
-  const fetchData = useCallback(async () => {
+  /* ─── Fetch ───
+   * silent=true: refetch en background, sin mostrar spinner full-screen
+   *  (evita el flash visual cuando ya hay datos en pantalla).
+   */
+  const fetchData = useCallback(async (silent = false) => {
     if (status !== 'authenticated') return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError('');
     try {
       const res = await fetch(`/api/availability?fecha=${toYMD(lunes)}`);
       if (!res.ok) {
-        setError('No se pudo cargar la disponibilidad');
+        if (!silent) setError('No se pudo cargar la disponibilidad');
         return;
       }
       const json = await res.json();
       setSalas(json.salas ?? []);
       setReservas(json.reservas ?? []);
     } catch {
-      setError('Error de conexión');
+      if (!silent) setError('Error de conexión');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [lunes, status]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  /* ─── Polling cada 30s ───
+   * Refresca en silencio para ver reservas hechas por otros usuarios.
+   * Se pausa cuando hay modal abierto o la pestaña esta oculta.
+   */
+  useEffect(() => {
+    if (bookingModal) return;
+    const id = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchData(true);
+    }, 30_000);
+    return () => clearInterval(id);
+  }, [fetchData, bookingModal]);
 
   const handleDateChangeStr = (val: string) => {
     if (!val) return;
@@ -374,8 +389,21 @@ export default function DisponibilidadPage() {
                 if (!res.ok) {
                   setBookingError(data.error || 'Error al reservar la sala');
                 } else {
+                  // Optimista: pintamos el slot rojo de inmediato con los datos
+                  // que ya tenemos en mano. El refetch en background reconcilia
+                  // con el id real y cualquier dato derivado del server.
+                  const optimista: ReservaSlot = {
+                    id: data?.id ?? -Date.now(),
+                    salaId: bookingModal.salaId,
+                    fecha: toYMD(diaSeleccionado),
+                    horaInicio: bookingForm.horaInicio,
+                    horaFin: bookingForm.horaFin,
+                    motivo: bookingForm.motivo || null,
+                    usuario: { nombre: session?.user?.nombre ?? 'Tú' },
+                  };
+                  setReservas((prev) => [...prev, optimista]);
                   setBookingModal(null);
-                  fetchData(); // reload availability
+                  fetchData(true); // reconciliar en background, sin spinner
                 }
               } catch {
                 setBookingError('Error de conexión al servidor');
