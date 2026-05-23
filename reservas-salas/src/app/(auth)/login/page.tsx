@@ -5,6 +5,7 @@ import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import Image from 'next/image';
+import { toast } from 'sonner';
 import { Input, Card, ThemeToggle } from '@/components/ui';
 
 interface Facultad {
@@ -47,6 +48,12 @@ export default function LoginPage() {
       }
       if (params.get('tab') === 'register') {
         setTab('register');
+      }
+      const reason = params.get('reason');
+      if (reason === 'session-revoked') {
+        toast.warning('Tu sesion fue cerrada (revocada o iniciada en otro dispositivo).');
+      } else if (reason === 'revoked') {
+        toast.info('Tus sesiones fueron cerradas.');
       }
     }
   }, []);
