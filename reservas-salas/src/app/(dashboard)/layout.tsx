@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
-import { LogOut, User, Menu, X, ShieldOff } from 'lucide-react';
+import { usePathname } from 'next/navigation';
+import { LogOut, User, Menu, X } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { ThemeToggle, NotificationBell } from '@/components/ui';
@@ -28,9 +28,7 @@ const navItems = {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const router = useRouter();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [revoking, setRevoking] = useState(false);
   const prevStatus = useRef(status);
 
   // Detector: si la sesion era valida y paso a invalidada (login en otro
@@ -47,24 +45,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     setDrawerOpen(false);
   }, [pathname]);
-
-  const handleRevokeOthers = async () => {
-    if (!window.confirm('Esto cerrara la sesion en todos los demas dispositivos. ¿Continuar?')) return;
-    setRevoking(true);
-    try {
-      const res = await fetch('/api/auth/revoke-all', { method: 'POST' });
-      if (!res.ok) {
-        toast.error('No se pudo revocar las otras sesiones');
-        return;
-      }
-      toast.success('Otras sesiones cerradas. Esta sesion sigue activa.');
-      router.refresh();
-    } catch {
-      toast.error('Error de conexion');
-    } finally {
-      setRevoking(false);
-    }
-  };
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -187,21 +167,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
             <NotificationBell />
             <ThemeToggle />
-            <button
-              type="button"
-              onClick={handleRevokeOthers}
-              disabled={revoking}
-              aria-label="Cerrar sesion en otros dispositivos"
-              title="Cerrar sesion en otros dispositivos"
-              className="inline-flex items-center justify-center p-2 rounded-lg border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] disabled:opacity-50"
-              style={{
-                background: 'transparent',
-                borderColor: 'var(--border)',
-                color: 'var(--text-muted)',
-              }}
-            >
-              <ShieldOff size={16} />
-            </button>
             <button
               type="button"
               onClick={() => signOut({ callbackUrl: '/login' })}
