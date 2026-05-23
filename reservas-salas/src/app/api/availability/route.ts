@@ -16,10 +16,14 @@ export async function GET(req: Request) {
     // fechaParam: YYYY-MM-DD (lunes de la semana)
     const fechaParam = searchParams.get('fecha') ?? new Date().toISOString().split('T')[0];
 
-    // Generar los 5 días de la semana (lun-vie) como strings YYYY-MM-DD
+    // Generar los 6 días de la semana laborables (lun-sab); el domingo está
+    // bloqueado por regla de negocio en la creación. Antes solo devolvíamos
+    // 5 días → las reservas hechas en sábado existían en DB pero no en el
+    // payload, así que el refetch sobreescribía el optimistic update y el
+    // slot volvía a verde aunque la reserva sí estuviera persistida.
     const lunes = new Date(fechaParam + 'T12:00:00.000Z');
     const fechas: string[] = [];
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 6; i++) {
       const d = new Date(lunes);
       d.setUTCDate(lunes.getUTCDate() + i);
       fechas.push(d.toISOString().split('T')[0]);
