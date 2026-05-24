@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { toast } from 'sonner';
 import {
   Plus, Edit3, Power, PowerOff, Cpu,
-  Users, MapPin, DoorOpen, CalendarCheck, History,
+  Users, MapPin, DoorOpen, CalendarCheck, History, ChevronDown, ChevronRight,
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -53,6 +53,7 @@ export default function SalasPage() {
   const [modalError, setModalError] = useState<string>(''); // CP-004 E2 — error visible en modal
   const [auditSalaId, setAuditSalaId] = useState<{ id: number; nombre: string } | null>(null); // CP-006 E3 — modal historial
   const [editingSala, setEditingSala] = useState<Sala | null>(null);
+  const [colapsados, setColapsados] = useState<Set<string>>(new Set()); // edificios colapsados
   const [form, setForm] = useState({
     nombre: '', ubicacion: '', capacidad: '10',
     edificioId: '', piso: '', numero: '', descripcion: '',
@@ -198,6 +199,29 @@ export default function SalasPage() {
   };
 
   const disponibles = useMemo(() => salas.filter((s) => s.habilitada).length, [salas]);
+
+  /** Agrupa las salas por edificio (primer segmento de la ubicacion antes
+   *  de la primera coma). Permite navegar visualmente sin paginar: el usuario
+   *  ve secciones colapsables tipo "Aulas 1 (12 salas)" en vez de un grid
+   *  plano de 100+ cards. */
+  const grupos = useMemo(() => {
+    const map = new Map<string, Sala[]>();
+    for (const s of salas) {
+      const key = s.ubicacion?.split(',')[0]?.trim() || 'Sin ubicación';
+      if (!map.has(key)) map.set(key, []);
+      map.get(key)!.push(s);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b, 'es'));
+  }, [salas]);
+
+  const toggleGrupo = (edificio: string) => {
+    setColapsados((prev) => {
+      const next = new Set(prev);
+      if (next.has(edificio)) next.delete(edificio);
+      else next.add(edificio);
+      return next;
+    });
+  };
 
   const edificioSel = form.edificioId ? getEdificio(form.edificioId) : undefined;
   const nombrePreview = componerNombreSala({
@@ -541,9 +565,47 @@ export default function SalasPage() {
           description="Ajusta los filtros o limpia la búsqueda para ver más resultados."
         />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {salas.map((sala) => (
-            <Card key={sala.id} padding="lg">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {grupos.map(([edificio, salasEdificio]) => {
+            const colapsado = colapsados.has(edificio);
+            const disponiblesGrupo = salasEdificio.filter((s) => s.habilitada).length;
+            return (
+              <section key={edificio}>
+                <button
+                  type="button"
+                  onClick={() => toggleGrupo(edificio)}
+                  aria-expanded={!colapsado}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 14px',
+                    marginBottom: '12px',
+                    background: 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
+                    borderRadius: '10px',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    color: 'var(--text-primary)',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  {colapsado ? <ChevronRight size={16} /> : <ChevronDown size={16} />}
+                  <span style={{ flex: 1 }}>{edificio}</span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 500 }}>
+                    {salasEdificio.length} {salasEdificio.length === 1 ? 'sala' : 'salas'}
+                    {isSecretaria && disponiblesGrupo !== salasEdificio.length && (
+                      <> · {disponiblesGrupo} disp.</>
+                    )}
+                  </span>
+                </button>
+
+                {!colapsado && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {salasEdificio.map((sala) => (
+          <Card key={sala.id} padding="lg">
               {/* Header card */}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
                 <div style={{ minWidth: 0 }}>
@@ -637,7 +699,12 @@ export default function SalasPage() {
                 )}
               </div>
             </Card>
-          ))}
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })}
         </div>
       )}
 
