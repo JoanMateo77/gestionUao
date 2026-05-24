@@ -84,15 +84,17 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       // Verificación de sesión activa: el sid del JWT debe coincidir con el
       // activeSessionId persistido. Si no coincide (otro login lo sobreescribió
-      // o hubo revocación manual), devolvemos sesión vacía → el cliente queda
-      // deslogueado y el middleware redirige a /login.
+      // o hubo revocación manual), devolvemos sesión con expires en el pasado.
+      // No tocamos session.user: si lo seteamos a undefined, cualquier consumidor
+      // que acceda a session.user.* antes de detectar el cambio de status
+      // crashea con TypeError.
       const usuarioDb = await prisma.usuario.findUnique({
         where: { id: Number(token.id) },
         select: { activeSessionId: true, activo: true },
       });
 
       if (!usuarioDb || !usuarioDb.activo || usuarioDb.activeSessionId !== token.sid) {
-        return { ...session, user: undefined as never, expires: '1970-01-01T00:00:00.000Z' };
+        return { ...session, expires: '1970-01-01T00:00:00.000Z' };
       }
 
       if (session.user) {

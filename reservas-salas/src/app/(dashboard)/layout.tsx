@@ -68,7 +68,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  if (!session) return null;
+  // Defensivo: si el server invalidó la sesión, la respuesta de /api/auth/session
+  // puede llegar con expires en el pasado pero session.user temporalmente undefined
+  // durante la transición. Sin esta guarda, los accesos session.user.rol crashean
+  // el layout antes de que el detector del useEffect dispare signOut().
+  if (!session || !session.user) return null;
 
   const items = navItems[session.user.rol] || navItems.DOCENTE;
   const isActive = (href: string) => pathname === href || pathname.startsWith(href + '/');
