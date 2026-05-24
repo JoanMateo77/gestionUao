@@ -122,6 +122,10 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require"
 NEXTAUTH_SECRET="genera-uno-con: openssl rand -base64 32"
 NEXTAUTH_URL="http://localhost:3000"
 INSTITUTIONAL_DOMAIN="uao.edu.co"
+
+# Cron de recordatorios (Vercel Cron). Si se define, el endpoint
+# /api/cron/recordatorios exige Authorization: Bearer ${CRON_SECRET}.
+CRON_SECRET="genera-uno-con: openssl rand -base64 32"
 ```
 
 ---

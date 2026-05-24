@@ -104,6 +104,42 @@ export const reservationService = {
       ipAddress: ip,
     });
 
+    // Confirmacion al titular (notificacion in-app + email).
+    // Si la secretaria reservo a nombre de otro docente, el titular es ese otro
+    // — pero como el endpoint actual solo deja reservar a uno mismo, titular === usuarioId.
+    const titular = await prisma.usuario.findUnique({
+      where: { id: usuarioId },
+      select: { correoInstitucional: true },
+    });
+    if (titular) {
+      const titulo = `Reserva confirmada en ${sala.nombre}`;
+      const mensaje =
+        `Tu reserva quedó registrada: ${validated.fecha} ${validated.horaInicio}-${validated.horaFin}` +
+        `${validated.motivo ? ` — ${validated.motivo}` : ''}.`;
+
+      await notificationService.create({
+        usuarioId,
+        tipo: 'GENERAL',
+        titulo,
+        mensaje,
+        metadata: {
+          kind: 'reserva-confirmada',
+          reservaId: reserva.id,
+          salaId: sala.id,
+          salaNombre: sala.nombre,
+          fecha: validated.fecha,
+          horaInicio: validated.horaInicio,
+          horaFin: validated.horaFin,
+        },
+        email: buildEmailPayload(titular.correoInstitucional, titulo, mensaje, {
+          'Sala': sala.nombre,
+          'Fecha': validated.fecha,
+          'Horario': `${validated.horaInicio} – ${validated.horaFin}`,
+          ...(validated.motivo ? { 'Motivo': validated.motivo } : {}),
+        }),
+      });
+    }
+
     return reserva;
   },
 
@@ -141,6 +177,40 @@ export const reservationService = {
       datosNuevos: { estado: 'CANCELADA', canceladoPor: usuarioId },
       ipAddress: ip,
     });
+
+    // Notificar al titular si quien cancela NO es el titular (caso secretaria).
+    // El docente cancelando su propia reserva no se notifica a si mismo.
+    if (reserva.usuarioId !== usuarioId) {
+      const fmtFecha = (d: Date) => d.toISOString().split('T')[0];
+      const fmtTime = (d: Date) =>
+        `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
+      const titulo = `Tu reserva en ${reserva.sala.nombre} fue cancelada`;
+      const mensaje =
+        `Una secretaria canceló tu reserva del ${fmtFecha(reserva.fecha)} ` +
+        `(${fmtTime(reserva.horaInicio)}-${fmtTime(reserva.horaFin)}). ` +
+        `Por favor revisa la disponibilidad si necesitas reprogramar.`;
+
+      await notificationService.create({
+        usuarioId: reserva.usuarioId,
+        tipo: 'RESERVA_CANCELADA_POR_SECRETARIA',
+        titulo,
+        mensaje,
+        metadata: {
+          reservaId,
+          salaId: reserva.salaId,
+          salaNombre: reserva.sala.nombre,
+          fecha: fmtFecha(reserva.fecha),
+          horaInicio: fmtTime(reserva.horaInicio),
+          horaFin: fmtTime(reserva.horaFin),
+          canceladoPor: usuarioId,
+        },
+        email: buildEmailPayload(reserva.usuario.correoInstitucional, titulo, mensaje, {
+          'Sala': reserva.sala.nombre,
+          'Fecha': fmtFecha(reserva.fecha),
+          'Horario': `${fmtTime(reserva.horaInicio)} – ${fmtTime(reserva.horaFin)}`,
+        }),
+      });
+    }
 
     return cancelled;
   },
