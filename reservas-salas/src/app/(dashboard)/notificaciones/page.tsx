@@ -63,7 +63,7 @@ export default function NotificacionesPage() {
       <div className="flex items-center gap-3 mb-6">
         <div
           className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-          style={{ background: 'var(--primary)', color: '#fff' }}
+          style={{ background: 'var(--primary)', color: 'var(--primary-fg)' }}
         >
           <Bell size={22} />
         </div>
@@ -95,7 +95,7 @@ export default function NotificacionesPage() {
             className="px-3 py-1.5 rounded-lg text-xs transition-colors"
             style={{
               background: filter === m ? 'var(--primary)' : 'var(--bg-input)',
-              color: filter === m ? '#fff' : 'var(--text-secondary)',
+              color: filter === m ? 'var(--primary-fg)' : 'var(--text-secondary)',
               fontWeight: filter === m ? 600 : 400,
             }}
           >

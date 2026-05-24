@@ -397,8 +397,8 @@ export default function RecursosPage() {
                 <div style={{
                   fontSize: '0.75rem',
                   color: 'var(--danger)',
-                  background: '#fef2f2',
-                  border: '1px solid #fecaca',
+                  background: 'var(--danger-bg)',
+                  border: '1px solid var(--danger)',
                   borderRadius: '6px',
                   padding: '6px 10px',
                   marginBottom: '10px',
@@ -485,7 +485,7 @@ export default function RecursosPage() {
                             display: 'inline-flex', alignItems: 'center', gap: '6px',
                             padding: '8px 12px', borderRadius: '999px',
                             background: isPending
-                              ? 'var(--primary-light, #eff6ff)'
+                              ? 'var(--info-bg)'
                               : 'var(--bg-input)',
                             border: isPending
                               ? '1.5px solid var(--primary)'
@@ -569,7 +569,7 @@ export default function RecursosPage() {
                               <span style={{
                                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                                 background: 'var(--primary)',
-                                color: '#fff',
+                                color: 'var(--primary-fg)',
                                 borderRadius: '999px',
                                 fontSize: '0.65rem',
                                 fontWeight: 700,

@@ -162,7 +162,7 @@ export default function DisponibilidadPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <div style={{
             width: '52px', height: '52px', borderRadius: '14px',
-            background: 'var(--primary)', color: '#fff',
+            background: 'var(--primary)', color: 'var(--primary-fg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: '0 4px 10px rgba(37, 99, 235, 0.2)'
           }}>
@@ -222,10 +222,10 @@ export default function DisponibilidadPage() {
         </div>
       ) : (
         /* Grid Horizontal tipo Gantt */
-        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', background: '#fff', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: '10px', overflow: 'hidden', background: 'var(--bg-secondary)', boxShadow: '0 4px 12px rgba(0,0,0,0.03)' }}>
           {/* Panel Izquierdo Fijo: Salas */}
-          <div style={{ width: '280px', flexShrink: 0, borderRight: '1px solid var(--border)', background: '#fff', zIndex: 10, boxShadow: '2px 0 8px rgba(0,0,0,0.05)' }}>
-            <div style={{ height: '44px', padding: '0 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', background: '#fafafa' }}>
+          <div style={{ width: '280px', flexShrink: 0, borderRight: '1px solid var(--border)', background: 'var(--bg-secondary)', zIndex: 10, boxShadow: '2px 0 8px rgba(0,0,0,0.05)' }}>
+            <div style={{ height: '44px', padding: '0 16px', borderBottom: '1px solid var(--border)', fontWeight: 700, fontSize: '0.9rem', display: 'flex', alignItems: 'center', background: 'var(--bg-input)', color: 'var(--text-primary)' }}>
               Espacio
             </div>
             {salas.map((sala) => (
@@ -233,16 +233,17 @@ export default function DisponibilidadPage() {
                 height: '54px', padding: '0 16px',
                 borderBottom: '1px solid var(--border)',
                 display: 'flex', alignItems: 'center', gap: '8px',
-                opacity: sala.habilitada ? 1 : 0.5,
-                background: sala.habilitada ? 'transparent' : '#f3f4f6',
+                opacity: sala.habilitada ? 1 : 0.55,
+                background: sala.habilitada ? 'transparent' : 'var(--bg-input)',
               }}>
-                <div style={{ fontSize: '0.9rem', color: sala.habilitada ? '#2563eb' : '#6b7280', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+                <div style={{ fontSize: '0.9rem', color: sala.habilitada ? 'var(--info)' : 'var(--text-muted)', fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
                   {sala.nombre}
                 </div>
                 {!sala.habilitada && (
                   <span style={{
-                    fontSize: '0.65rem', fontWeight: 700, color: '#6b7280',
-                    background: '#e5e7eb', padding: '2px 6px', borderRadius: '4px',
+                    fontSize: '0.65rem', fontWeight: 700, color: 'var(--text-muted)',
+                    background: 'var(--bg-primary)', padding: '2px 6px', borderRadius: '4px',
+                    border: '1px solid var(--border)',
                     textTransform: 'uppercase', letterSpacing: '0.3px',
                   }}>
                     No disponible
@@ -253,18 +254,18 @@ export default function DisponibilidadPage() {
           </div>
 
           {/* Panel Derecho Scrolleable: Tiempo */}
-          <div style={{ flex: 1, overflowX: 'auto', background: '#fff' }}>
+          <div style={{ flex: 1, overflowX: 'auto', background: 'var(--bg-secondary)' }}>
              <div style={{ display: 'inline-flex', flexDirection: 'column', minWidth: '100%' }}>
                {/* Encabezado: Horas */}
-               <div style={{ height: '44px', display: 'flex', borderBottom: '1px solid var(--border)', background: '#fafafa' }}>
+               <div style={{ height: '44px', display: 'flex', borderBottom: '1px solid var(--border)', background: 'var(--bg-input)' }}>
                  {FRANJAS.map((slot) => {
                    const isHour = slot.endsWith(':00');
                    return (
-                     <div key={slot} style={{ 
-                       width: '45px', flexShrink: 0, borderRight: '1px dashed #e5e7eb', 
-                       position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: '4px' 
+                     <div key={slot} style={{
+                       width: '45px', flexShrink: 0, borderRight: '1px dashed var(--border)',
+                       position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', paddingLeft: '4px'
                      }}>
-                       {isHour && <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#374151', position: 'absolute', left: '4px' }}>{slot}</span>}
+                       {isHour && <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary)', position: 'absolute', left: '4px' }}>{slot}</span>}
                      </div>
                    );
                  })}
@@ -272,13 +273,16 @@ export default function DisponibilidadPage() {
 
                {/* Filas: Disponibilidad por Sala */}
                {salas.map((sala) => (
-                 <div key={sala.id} style={{ height: '54px', display: 'flex', borderBottom: '1px solid var(--border)', background: !sala.habilitada ? '#f3f4f6' : 'transparent' }}>
+                 <div key={sala.id} style={{ height: '54px', display: 'flex', borderBottom: '1px solid var(--border)', background: !sala.habilitada ? 'var(--bg-input)' : 'transparent' }}>
                    {FRANJAS.map((slot) => {
                      const reserva = getReserva(sala.id, diaSeleccionado, slot);
                      const ocupada = !!reserva;
                      const deshabilitada = !sala.habilitada;
 
                      // CP-003 E4: salas deshabilitadas se ven como "no disponible" (gris rayado)
+                     // Los colores de los slots se mantienen fijos a propósito: representan
+                     // semaforo (verde=libre, rojo=ocupado, gris=deshabilitado) y deben verse
+                     // igual en claro y oscuro para no perder el lenguaje visual.
                      const bg = deshabilitada
                        ? 'repeating-linear-gradient(-45deg, #d1d5db, #d1d5db 8px, #9ca3af 8px, #9ca3af 16px)' // Gris rayado
                        : ocupada
@@ -304,7 +308,7 @@ export default function DisponibilidadPage() {
                             title={deshabilitada ? 'Sala deshabilitada por administración' : ocupada ? 'Reservada' : 'Disponible — click para reservar'}
                             style={{
                               width: '45px', flexShrink: 0,
-                              borderRight: '1px dashed #e5e7eb',
+                              borderRight: '1px dashed var(--border)',
                               padding: '6px 1px',
                               cursor: deshabilitada ? 'not-allowed' : 'pointer',
                             }}>
@@ -363,13 +367,13 @@ export default function DisponibilidadPage() {
           background: 'rgba(0,0,0,0.5)', zIndex: 10000,
           display: 'flex', alignItems: 'center', justifyContent: 'center'
         }}>
-          <div className="card fade-in" style={{ padding: '24px', width: '100%', maxWidth: '440px', background: '#fff', border: '1px solid var(--border)', borderRadius: '12px' }}>
+          <div className="card fade-in" style={{ padding: '24px', width: '100%', maxWidth: '440px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', color: 'var(--text-primary)' }}>
             <h2 style={{ margin: '0 0 8px 0', fontSize: '1.2rem', fontWeight: 700 }}>Reservar: {bookingModal.salaNombre}</h2>
             <p style={{ margin: '0 0 20px 0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               Fecha: <span style={{ fontWeight: 600 }}>{diaSeleccionado.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</span>
             </p>
-            
-            {bookingError && <div style={{ background: '#fef2f2', color: '#dc2626', padding: '10px 14px', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '16px', border: '1px solid #fecaca' }}>{bookingError}</div>}
+
+            {bookingError && <div style={{ background: 'var(--danger-bg)', color: 'var(--danger)', padding: '10px 14px', borderRadius: '8px', fontSize: '0.8rem', marginBottom: '16px', border: '1px solid var(--danger)' }}>{bookingError}</div>}
             
             <form onSubmit={async (e) => {
               e.preventDefault();
