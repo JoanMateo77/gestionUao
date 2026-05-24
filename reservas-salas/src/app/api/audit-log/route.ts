@@ -26,25 +26,43 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'entidadId debe ser un entero' }, { status: 400 });
   }
 
-  const logs = await prisma.logAuditoria.findMany({
-    where: {
-      entidad,
-      ...(entidadId ? { entidadId } : {}),
-    },
-    select: {
-      id: true,
-      accion: true,
-      entidad: true,
-      entidadId: true,
-      datosAnteriores: true,
-      datosNuevos: true,
-      fecha: true,
-      ipAddress: true,
-      usuario: { select: { id: true, nombre: true, correoInstitucional: true } },
-    },
-    orderBy: { fecha: 'desc' },
-    take: 100,
-  });
+  // Paginacion: page y limit con defaults razonables. limit cap a 100 para
+  // evitar abuso del endpoint o consultas accidentales muy grandes.
+  const page = Math.max(1, Number(searchParams.get('page')) || 1);
+  const limit = Math.min(100, Math.max(1, Number(searchParams.get('limit')) || 20));
+  const skip = (page - 1) * limit;
 
-  return NextResponse.json(logs);
+  const where = { entidad, ...(entidadId ? { entidadId } : {}) };
+
+  // count + findMany en paralelo para reducir round-trip
+  const [total, logs] = await Promise.all([
+    prisma.logAuditoria.count({ where }),
+    prisma.logAuditoria.findMany({
+      where,
+      select: {
+        id: true,
+        accion: true,
+        entidad: true,
+        entidadId: true,
+        datosAnteriores: true,
+        datosNuevos: true,
+        fecha: true,
+        ipAddress: true,
+        usuario: { select: { id: true, nombre: true, correoInstitucional: true } },
+      },
+      orderBy: { fecha: 'desc' },
+      skip,
+      take: limit,
+    }),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / limit));
+  return NextResponse.json({
+    logs,
+    total,
+    page,
+    limit,
+    totalPages,
+    hasMore: page < totalPages,
+  });
 }
