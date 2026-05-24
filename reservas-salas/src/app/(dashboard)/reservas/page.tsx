@@ -75,6 +75,16 @@ function formatDate(isoDate: string): string {
   } catch { return isoDate; }
 }
 
+/** Formato largo y legible para vistas de detalle: "jueves, 7 de mayo de 2026". */
+function formatDateLong(isoDate: string): string {
+  try {
+    const d = new Date(isoDate + 'T12:00:00');
+    return d.toLocaleDateString('es-CO', {
+      weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    });
+  } catch { return isoDate; }
+}
+
 function isoToDateInput(isoDate: string): string {
   return isoDate.split('T')[0];
 }
@@ -746,11 +756,15 @@ export default function ReservasPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Fecha</div>
-                <div style={{ fontSize: '0.85rem' }}>{detalleReserva.fecha}</div>
+                <div style={{ fontSize: '0.85rem', textTransform: 'capitalize' }}>
+                  {formatDateLong(detalleReserva.fecha.split('T')[0])}
+                </div>
               </div>
               <div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}>Horario</div>
-                <div style={{ fontSize: '0.85rem' }}>{detalleReserva.horaInicio} – {detalleReserva.horaFin}</div>
+                <div style={{ fontSize: '0.85rem' }}>
+                  {formatTime(detalleReserva.horaInicio)} – {formatTime(detalleReserva.horaFin)}
+                </div>
               </div>
             </div>
             <div>
